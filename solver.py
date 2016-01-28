@@ -37,19 +37,65 @@ def Transpose(matrix):
     return t_matrix
 
 
-def BreadthFirstSearch(num_colors, puzzle):
-    color_start = FindColorStart(puzzle, num_colors)
-    ROOT_ID = 0
-    relation_dict = {ROOT_ID:None}
-    state_dict = {ROOT_ID:puzzle}
+class StateTree():
+    """Creates a State Tree for all possible states of Puzzle"""
+    def __init__(self, initial_puzzle, number_of_colors):
+        self.puzzle = initial_puzzle
+        self.num_colors = number_of_colors
+        self.color_start = FindColorStart(self.puzzle, self.num_colors)
+        self.color_end = FindColorEnd(self.puzzle, self.num_colors)
+        self.ID = 0
+        self.relation_dict = {self.ID:None}
+        self.state_dict = {self.ID:self.puzzle}
 
-    BuildSearchTree(ROOT_ID, relation_dict, state_dict, color_start)
-    # color_end = FindColorEnd(puzzle, num_colors)
+    def BreadthFirstSearch(self):
+        self.BuildSearchTree(self.color_start)
+        # color_end = FindColorEnd(self.puzzle, self.num_colors)
 
-    # Search the tree via depth-first-search for final state
-    # ...
+        # Search the tree via depth-first-search for final state
+        # ...
 
-    # solution_path = TraceBack(search_tree, state_id)
+        # solution_path = TraceBack(search_tree, state_id)
+
+
+    def BuildSearchTree(self, colors_path_head):
+        parent_id = self.ID
+        print '\n=== CHILDREN OF STATE %d ===' % parent_id
+
+        # go through each color
+        for color_num in colors_path_head:
+            # get the coordinates of the furthest point of the color's path
+            coord = colors_path_head[color_num]
+            print '\n--- COLOR %d COORDINATE: %r ---' % (color_num, coord)
+            # retrive all valid actions from this color's path head
+            valid_actions = Actions(self.state_dict[parent_id], coord)
+            print 'valid actions:', valid_actions
+            # create a new child state for each valid action
+            for action in valid_actions:
+                self.ID += 1
+                # retulting child state from parent acted  on by action
+                c_state = Result(self.state_dict[parent_id], coord, action)
+                print 'STATE:', self.ID
+                # update the futhest point of the color's path
+                new_c_path_head = colors_path_head.copy()
+                new_c_path_head[color_num] = action
+                # add the child-parent relation to the dict
+                self.relation_dict[self.ID] = parent_id
+                # add the state to the dict
+                self.state_dict[self.ID] = c_state
+                Visualize(self.state_dict[self.ID])
+                print 'new path head:', new_c_path_head
+                print 'new relation dict:', self.relation_dict
+
+                if False:
+                #if VerifyFinal(self.state_dict[self.ID], self.color_start, self.color_end):
+                    print '*** STATE %d IS FINAL ***'
+                else:
+                    # if current state is not final state then go deeper
+                    self.BuildSearchTree(new_c_path_head)
+
+            print '\n--- END COLOR %d COORDINATE: %r ---' % (color_num, coord)
+        print '\n=== END CHILDREN OF STATE %d ===' % parent_id
 
 
 # PURPOSE: given the puzzle and the number of colors to find, function will
@@ -115,38 +161,25 @@ def FindColorEnd(puzzle, num_colors):
     return coordinates
 
 
-def BuildSearchTree(p_id, relation_dict, state_dict, colors_path_head):
-    c_id = p_id + 1
-
-    # go through each color
-    for color_num in colors_path_head:
-        # get the coordinates of the furthest point of the color's path
-        coord = colors_path_head[color_num]
-        print '\nCOLOR %d COORDINATE: %r' % (color_num, coord)
-        # retrive all valid actions from this color's path head
-        valid_actions = Actions(state_dict[p_id], coord)
-        print 'valid actions:', valid_actions
-        # create a new child state for each valid action
-        for action in valid_actions:
-            # retulting child state from parent acted  on by action
-            c_state = Result(state_dict[p_id], coord, action)
-            print 'STATE:', c_id
-            # update the futhest point of the color's path
-            new_c_path_head = colors_path_head.copy()
-            new_c_path_head[color_num] = action
-            # add the child-parent relation to the dict
-            relation_dict[c_id] = p_id
-            # add the state to the dict
-            state_dict[c_id] = c_state
-            Visualize(state_dict[c_id])
-            print 'new path head:', new_c_path_head
-            print 'new relation dict:', relation_dict
-            # BuildSearchTree(c_id, relation_dict, state_dict, colors_path_head)
-            c_id += 1
 
 
-def VerifyFinal(pzzl_state):   # REVIEW: ask if i should name the function FINAL
-    pass
+
+def VerifyFinal(pzzl_state, colors_start, colors_end):   # REVIEW: ask if i should name the function FINAL
+    p_copy = copy.deepcopy(pzzl_state)
+
+    for color in colors_start:
+        start = colors_start[color]
+        end = colors_end[color]
+        curr_state = start
+
+        while True:
+            if curr_state == end:
+                break
+            for action in [[-1,0], [0,1], [1,0], [0,-1]]:
+                new_row = coord[0]+action[0]
+                new_col = coord[1]+action[1]
+                if p_copy[new_coord[0]][new_coord[1]] != 'e':
+                    continue
 
 
 def TraceBack(search_tree, state_id):
@@ -160,18 +193,18 @@ def Actions(p_state, coord):
 
     # action order: down, right, up, left
     for action in [[-1,0], [0,1], [1,0], [0,-1]]:
-        new_col = coord[0]+action[0]
-        new_row = coord[1]+action[1]
+        new_row = coord[0]+action[0]
+        new_col = coord[1]+action[1]
         # check if move is out-of-bounds
         if new_col < lower_bound or new_col == upper_bound:
             continue
         if new_row < lower_bound or new_row == upper_bound:
             continue
         # check if space is already occupied
-        new_coord = [new_col, new_row]
-        if p_state[new_coord[0]][new_coord[1]] != 'e':
+        if p_state[new_row][new_col] != 'e':
             continue
         # if move is in-bounds and space is not occupied, it is a valid move
+        new_coord = [new_row, new_col]
         valid_actions.append(new_coord)
 
     return valid_actions
@@ -203,11 +236,12 @@ def Visualize(puzzle):
 ## Main
 ################################################################################
 #script, pzzl_num = argv
-pzzl_num = 1
+pzzl_num = 0
 (num_colors, pzzl_array) = ReadInput(pzzl_num)
 print '== INITIAL PUZZLE =='
 Visualize(pzzl_array)
-BreadthFirstSearch(num_colors, pzzl_array)
+PTree = StateTree(pzzl_array, num_colors)
+PTree.BreadthFirstSearch()
 
 
 # color_start = FindColorStart(pzzl_array, num_colors)

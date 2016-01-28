@@ -5,11 +5,16 @@
 #     print l[i]
 import copy
 
-p = [[1, 2], [3, 4]]
-p2 = copy.deepcopy(p)
+# p = [[1, 2], [3, 4]]
+# p2 = copy.deepcopy(p)
+#
+# i = [0,1]
+# p[i[0]][i[1]] = 100
+#
+# print 'p:', p
+# print 'p2:', p2
 
-i = [0,1]
-p[i[0]][i[1]] = 100
-
-print 'p:', p
-print 'p2:', p2
+p = 1
+p2 = copy.copy(p)
+p2 = 2
+print p, p2

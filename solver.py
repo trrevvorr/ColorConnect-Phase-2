@@ -20,13 +20,29 @@ def ReadInput(pzzl_num):
 
     first_line = pzzl_array.pop(0)
     num_colors = int(first_line.pop())
+
+    # transpose array since dr. t wants the coordinates in [c, r] format
+    # pzzl_array = Transpose(pzzl_array)
     return (num_colors, pzzl_array)
+
+
+def Transpose(matrix):
+    t_matrix = matrix[:]
+    dem = len(matrix)
+
+    for i in xrange(dem):
+        for j in xrange(dem):
+            t_matrix[i][j] = matrix[j][i]
+    return t_matrix
 
 
 def DepthFirstSearch(num_colors, puzzle):
     Visualize(puzzle)
     color_start = FindColorStart(puzzle, num_colors)
-    # search_tree = BuildSearchTree(puzzle, color_start)
+
+    relation_dict = {0:None}
+    state_dict = {0:puzzle}
+    BuildSearchTree(0, relation_dict, state_dict, color_start)
     color_end = FindColorEnd(puzzle, num_colors)
 
     # Search the tree via depth-first-search for final state
@@ -68,11 +84,21 @@ def FindColorStart(puzzle, num_colors):
     return coordinates
 
 
+def BuildSearchTree(p_id, relation_dict, state_dict, colors_path_head):
+    c_id = p_id + 1
 
+    for color_num in colors_path_head:
+        coord = colors_path_head[color_num]
+        valid_actions = Actions(p_state, coord)
+        for action in valid_actions:
+            c_state = Result(p_state, coord, action)
+            colors_path_head[color_num] = action
 
+            relation_dict[c_id] = p_id
+            state_dict[c_id] = c_state
+            BuildSearchTree(c_id, relation_dict, state_dict, colors_path_head)
+            c_id += 1
 
-def BuildSearchTree(puzzle, color_start):
-    pass
 
 
 # PURPOSE: given the puzzle and the number of colors to find, function will
@@ -118,6 +144,45 @@ def TraceBack(search_tree, state_id):
     pass
 
 
+def Actions(p_state, coord):
+    upper_bound = len(p_state)
+    lower_bound = 0
+    valid_actions = []
+
+    # action order: left, up, right, down
+    for action in [[-1,0], [0,1], [1,0], [0,-1]]:
+        new_col = coord[0]+action[0]
+        new_row = coord[1]+action[1]
+        # check if move is out-of-bounds
+        if new_col < lower_bound or new_col == upper_bound:
+            valid = False
+            continue
+        if new_row < lower_bound or new_row == upper_bound:
+            valid = False
+            continue
+        # check if space is already occupied
+        new_coord = [new_col, new_row]
+        if p_state[new_coord[1]][new_coord[0]] != 'e':
+            valid = False
+            continue
+        # if move is in-bounds and space is not occupied, it is a valid move
+        valid_actions.append(new_coord)
+
+    return valid_actions
+
+
+
+def Result(p_state, coord, action):
+    new_state = p_state[:]
+    color_path_to_extend = p_state[coord[0]][coord[1]]
+    new_state[action[0]][action[1]] = color_path_to_extend
+    return new_state
+
+
+def MovePathHead(colors_path_head, action):
+    pass
+
+
 def Visualize(puzzle):
     print '%s%s' % (('+---' * len(puzzle)), '+') # top horizontal divider
     for row in puzzle:
@@ -132,6 +197,17 @@ def Visualize(puzzle):
 ## Main
 ################################################################################
 #script, pzzl_num = argv
-pzzl_num = 1
+pzzl_num = 0
 (num_colors, pzzl_array) = ReadInput(pzzl_num)
-DepthFirstSearch(num_colors, pzzl_array)
+# DepthFirstSearch(num_colors, pzzl_array)
+
+Visualize(pzzl_array)
+color_start = FindColorStart(pzzl_array, num_colors)
+print 'Color Start:', color_start
+relation_dict = {0:None}
+state_dict = {0:pzzl_array}
+valid_actions = Actions(state_dict[0], color_start[0])
+print 'Valid Actions:', valid_actions
+
+color_end = FindColorEnd(pzzl_array, num_colors)
+print 'Color End:', color_end

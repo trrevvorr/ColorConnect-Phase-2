@@ -5,6 +5,7 @@
 # 01/27/2016
 # from sys import argv
 import re
+import copy
 
 ################################################################################
 ## FUNCTIONS
@@ -27,7 +28,7 @@ def ReadInput(pzzl_num):
 
 
 def Transpose(matrix):
-    t_matrix = matrix[:]
+    t_matrix = copy.deepcopy(matrix)
     dem = len(matrix)
 
     for i in xrange(dem):
@@ -36,7 +37,7 @@ def Transpose(matrix):
     return t_matrix
 
 
-def DepthFirstSearch(num_colors, puzzle):
+def BredthFirstSearch(num_colors, puzzle):
     Visualize(puzzle)
     color_start = FindColorStart(puzzle, num_colors)
 
@@ -57,10 +58,9 @@ def DepthFirstSearch(num_colors, puzzle):
 # PURPOSE: given the puzzle and the number of colors to find, function will
 # return a dict with the FIRST occurance of the number as the key and its
 # coordinates as the value
-# OUTPUT: dictionary in the format: {0 : [c0, r0], 1 : [c1, r1], ...}
-# NOTICE: coorditates are NOT stored in the typical [r, c] fasion
+# OUTPUT: dictionary in the format: {0:[r0,c0], 1:[r1,c1],...}
 def FindColorStart(puzzle, num_colors):
-    coordinates = {} # format: {0:[c0,r0], 1:[c1,r1],...} where r = row, c = col
+    coordinates = {} # format: {0:[r0,c0], 1:[r1,c1],...} where r = row, c = col
     dim = len(puzzle)
     color_nums = range(dim) # list of all color numbers
     # find coordinate for each color start
@@ -72,13 +72,47 @@ def FindColorStart(puzzle, num_colors):
             if int(char_found) in color_nums:
                 num_found = int(char_found)
                 color_nums.remove(num_found)
-                coordinates[num_found] = [col_i, row_i]
+                coordinates[num_found] = [row_i, col_i]
 
     # error checking to make sure right number of colors were found
     if len(coordinates) != num_colors:
         print 'ERROR: PROBLEMS FINDING COLORS'
         print 'COORDINATES: %r' % coordinates
         print 'START COLORS TO BE FOUND: %r' % range(num_colors)
+        exit(1)
+
+    return coordinates
+
+
+# PURPOSE: given the puzzle and the number of colors to find, function will
+# return a dict with the LAST occurance of the number as the key and its
+# coordinates as the value
+# OUTPUT: dictionary in the format: {0:[r0,c0], 1:[r1,c1],...}
+def FindColorEnd(puzzle, num_colors):
+    coordinates = {} # format: {0:[r0,c0], 1:[r1,c1],...}  where r = row, c = col
+    dim = len(puzzle)
+    color_nums = range(dim) # list of all color numbers
+    # find coordinate for each color start
+    for row_i in xrange(dim):
+        for col_i in xrange(dim):
+            char_found = puzzle[row_i][col_i]
+            # if char found is an e then go to then skip it
+            if char_found == 'e':
+                continue
+            # remove the first number of the pair from the color_nums list
+            if int(char_found) in color_nums:
+                num_found = int(char_found)
+                color_nums.remove(num_found)
+            # if the number doesnt exist in color_nums then it is end number
+            else:
+                num_found = int(char_found)
+                coordinates[num_found] = [row_i, col_i]
+
+    # error checking to make sure right number of colors were found
+    if len(coordinates) != num_colors:
+        print 'ERROR: PROBLEMS FINDING COLORS'
+        print 'COORDINATES: %r' % coordinates
+        print 'END COLORS TO BE FOUND: %r' % range(num_colors)
         exit(1)
 
     return coordinates
@@ -100,42 +134,6 @@ def BuildSearchTree(p_id, relation_dict, state_dict, colors_path_head):
             c_id += 1
 
 
-
-# PURPOSE: given the puzzle and the number of colors to find, function will
-# return a dict with the LAST occurance of the number as the key and its
-# coordinates as the value
-# OUTPUT: dictionary in the format: {0 : [c0, r0], 1 : [c1, r1], ...}
-# NOTICE: coorditates are NOT stored in the typical [r, c] fasion
-def FindColorEnd(puzzle, num_colors):
-    coordinates = {} # format: {0:[c0,r0], 1:[c1,r1],...} where r = row, c = col
-    dim = len(puzzle)
-    color_nums = range(dim) # list of all color numbers
-    # find coordinate for each color start
-    for row_i in xrange(dim):
-        for col_i in xrange(dim):
-            char_found = puzzle[row_i][col_i]
-            # if char found is an e then go to then skip it
-            if char_found == 'e':
-                continue
-            # remove the first number of the pair from the color_nums list
-            if int(char_found) in color_nums:
-                num_found = int(char_found)
-                color_nums.remove(num_found)
-            # if the number doesnt exist in color_nums then it is end number
-            else:
-                num_found = int(char_found)
-                coordinates[num_found] = [col_i, row_i]
-
-    # error checking to make sure right number of colors were found
-    if len(coordinates) != num_colors:
-        print 'ERROR: PROBLEMS FINDING COLORS'
-        print 'COORDINATES: %r' % coordinates
-        print 'END COLORS TO BE FOUND: %r' % range(num_colors)
-        exit(1)
-
-    return coordinates
-
-
 def VerifyFinal(pzzl_state):   # REVIEW: ask if i should name the function FINAL
     pass
 
@@ -149,21 +147,18 @@ def Actions(p_state, coord):
     lower_bound = 0
     valid_actions = []
 
-    # action order: left, up, right, down
+    # action order: down, right, up, left
     for action in [[-1,0], [0,1], [1,0], [0,-1]]:
         new_col = coord[0]+action[0]
         new_row = coord[1]+action[1]
         # check if move is out-of-bounds
         if new_col < lower_bound or new_col == upper_bound:
-            valid = False
             continue
         if new_row < lower_bound or new_row == upper_bound:
-            valid = False
             continue
         # check if space is already occupied
         new_coord = [new_col, new_row]
-        if p_state[new_coord[1]][new_coord[0]] != 'e':
-            valid = False
+        if p_state[new_coord[0]][new_coord[1]] != 'e':
             continue
         # if move is in-bounds and space is not occupied, it is a valid move
         valid_actions.append(new_coord)
@@ -173,7 +168,7 @@ def Actions(p_state, coord):
 
 
 def Result(p_state, coord, action):
-    new_state = p_state[:]
+    new_state = copy.deepcopy(p_state)
     color_path_to_extend = p_state[coord[0]][coord[1]]
     new_state[action[0]][action[1]] = color_path_to_extend
     return new_state
@@ -199,15 +194,24 @@ def Visualize(puzzle):
 #script, pzzl_num = argv
 pzzl_num = 0
 (num_colors, pzzl_array) = ReadInput(pzzl_num)
-# DepthFirstSearch(num_colors, pzzl_array)
-
+print '== INITIAL PUZZLE =='
 Visualize(pzzl_array)
+# BredthFirstSearch(num_colors, pzzl_array)
+
+
 color_start = FindColorStart(pzzl_array, num_colors)
 print 'Color Start:', color_start
 relation_dict = {0:None}
 state_dict = {0:pzzl_array}
 valid_actions = Actions(state_dict[0], color_start[0])
 print 'Valid Actions:', valid_actions
+
+a = 1
+for action in valid_actions:
+    new_state = Result(pzzl_array, color_start[0], action)
+    print 'ACTION: %d' % a
+    Visualize(new_state)
+    a += 1
 
 color_end = FindColorEnd(pzzl_array, num_colors)
 print 'Color End:', color_end

@@ -37,22 +37,19 @@ def Transpose(matrix):
     return t_matrix
 
 
-def BredthFirstSearch(num_colors, puzzle):
-    Visualize(puzzle)
+def BreadthFirstSearch(num_colors, puzzle):
     color_start = FindColorStart(puzzle, num_colors)
+    ROOT_ID = 0
+    relation_dict = {ROOT_ID:None}
+    state_dict = {ROOT_ID:puzzle}
 
-    relation_dict = {0:None}
-    state_dict = {0:puzzle}
-    BuildSearchTree(0, relation_dict, state_dict, color_start)
-    color_end = FindColorEnd(puzzle, num_colors)
+    BuildSearchTree(ROOT_ID, relation_dict, state_dict, color_start)
+    # color_end = FindColorEnd(puzzle, num_colors)
 
     # Search the tree via depth-first-search for final state
     # ...
 
     # solution_path = TraceBack(search_tree, state_id)
-
-    print color_start
-    print color_end
 
 
 # PURPOSE: given the puzzle and the number of colors to find, function will
@@ -121,16 +118,30 @@ def FindColorEnd(puzzle, num_colors):
 def BuildSearchTree(p_id, relation_dict, state_dict, colors_path_head):
     c_id = p_id + 1
 
+    # go through each color
     for color_num in colors_path_head:
+        # get the coordinates of the furthest point of the color's path
         coord = colors_path_head[color_num]
-        valid_actions = Actions(p_state, coord)
+        print '\nCOLOR %d COORDINATE: %r' % (color_num, coord)
+        # retrive all valid actions from this color's path head
+        valid_actions = Actions(state_dict[p_id], coord)
+        print 'valid actions:', valid_actions
+        # create a new child state for each valid action
         for action in valid_actions:
-            c_state = Result(p_state, coord, action)
-            colors_path_head[color_num] = action
-
+            # retulting child state from parent acted  on by action
+            c_state = Result(state_dict[p_id], coord, action)
+            print 'STATE:', c_id
+            # update the futhest point of the color's path
+            new_c_path_head = colors_path_head.copy()
+            new_c_path_head[color_num] = action
+            # add the child-parent relation to the dict
             relation_dict[c_id] = p_id
+            # add the state to the dict
             state_dict[c_id] = c_state
-            BuildSearchTree(c_id, relation_dict, state_dict, colors_path_head)
+            Visualize(state_dict[c_id])
+            print 'new path head:', new_c_path_head
+            print 'new relation dict:', relation_dict
+            # BuildSearchTree(c_id, relation_dict, state_dict, colors_path_head)
             c_id += 1
 
 
@@ -192,26 +203,26 @@ def Visualize(puzzle):
 ## Main
 ################################################################################
 #script, pzzl_num = argv
-pzzl_num = 0
+pzzl_num = 1
 (num_colors, pzzl_array) = ReadInput(pzzl_num)
 print '== INITIAL PUZZLE =='
 Visualize(pzzl_array)
-# BredthFirstSearch(num_colors, pzzl_array)
+BreadthFirstSearch(num_colors, pzzl_array)
 
 
-color_start = FindColorStart(pzzl_array, num_colors)
-print 'Color Start:', color_start
-relation_dict = {0:None}
-state_dict = {0:pzzl_array}
-valid_actions = Actions(state_dict[0], color_start[0])
-print 'Valid Actions:', valid_actions
-
-a = 1
-for action in valid_actions:
-    new_state = Result(pzzl_array, color_start[0], action)
-    print 'ACTION: %d' % a
-    Visualize(new_state)
-    a += 1
-
-color_end = FindColorEnd(pzzl_array, num_colors)
-print 'Color End:', color_end
+# color_start = FindColorStart(pzzl_array, num_colors)
+# print 'Color Start:', color_start
+# relation_dict = {0:None}
+# state_dict = {0:pzzl_array}
+# valid_actions = Actions(state_dict[0], color_start[0])
+# print 'Valid Actions:', valid_actions
+#
+# a = 1
+# for action in valid_actions:
+#     new_state = Result(pzzl_array, color_start[0], action)
+#     print 'ACTION: %d' % a
+#     Visualize(new_state)
+#     a += 1
+#
+# color_end = FindColorEnd(pzzl_array, num_colors)
+# print 'Color End:', color_end

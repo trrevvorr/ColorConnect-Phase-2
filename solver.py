@@ -7,12 +7,23 @@
 import re
 import copy
 import random
+import sys
 import time
 start_time = time.time()
 
 ################################################################################
 ## CLASSES
 ################################################################################
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 
 class Node():
     """Tree node for State Tree"""
@@ -202,8 +213,7 @@ class StateTree():
 ################################################################################
 ## FUNCTIONS
 ################################################################################
-def ReadInput(pzzl_num):
-    pzzl_file = 'input_p%s.txt' % pzzl_num
+def ReadInput(pzzl_file):
     f_hand = open(pzzl_file)
 
     pzzl_array = []
@@ -364,12 +374,15 @@ def DirPrint(directions):
 
 
 def Visualize(puzzle):
+    colors = [bcolors.HEADER, bcolors.OKGREEN, bcolors.WARNING,
+                bcolors.FAIL, bcolors.OKBLUE]
+    #print bcolors.WARNING + "Warning: No active frommets remain. Continue?" + bcolors.ENDC
     print '%s%s' % (('+---' * len(puzzle)), '+') # top horizontal divider
     for row in puzzle:
         print '|', # front vertical divider
         for char in row:
             if char == 'e': print ' ', '|', # empty + vertical divider
-            else: print char, '|', # color num + vertical divider
+            else: print colors[int(char)%5] + char + bcolors.ENDC, '|', # color num + vertical divider
         print
         print '%s%s' % (('+---' * len(row)), '+') # horizontal divider
 
@@ -378,9 +391,9 @@ def Visualize(puzzle):
 ################################################################################
 #script, pzzl_num = argv
 random.seed()
+pzzl_file = sys.argv[1]
 
-pzzl_num = 2  # TODO: make it so I can enter this number via command line
-(num_colors, pzzl_array) = ReadInput(pzzl_num)
+(num_colors, pzzl_array) = ReadInput(pzzl_file)
 
 print '== INITIAL PUZZLE =='
 Visualize(pzzl_array)

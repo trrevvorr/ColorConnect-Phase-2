@@ -3,14 +3,14 @@
 #     l[i] = '%d' % i
 # for i in l:
 #     print l[i]
-import random
-random.seed()
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 
-import time
-start_time = time.time()
-
-p = [[0,1], [1,2]]
-p.remove([0,1])
-print p
-
-print("--- %s seconds ---" % (time.time() - start_time))
+print bcolors.WARNING + "Warning: No active frommets remain. Continue?" + bcolors.ENDC

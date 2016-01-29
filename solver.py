@@ -89,6 +89,9 @@ class StateTree():
                     child.path_heads[color_num] = action_coord
                     # update child's path cost
                     child.path_cost = to_examine.path_cost + 1
+                    # push child onto queue
+                    queue.append(child)
+                    self.state_dict[child.ID] = child
                     # check if child is Goal State
                     time_before_final_check = time.time()
                     colors_connected = self.VerifyFinal(child.state)
@@ -98,11 +101,8 @@ class StateTree():
                         print 'STATE:', child.ID
                         Visualize(child.state)
                         found_final = True
-                        break
+                        return child.state
                     total_time_on_final += (time.time() - time_before_final_check)
-                    # push child onto queue
-                    queue.append(child)
-                    self.state_dict[child.ID] = child
                     total_time_on_creation += (time.time() - time_before_creation)
                 if found_final: break
 
@@ -129,7 +129,7 @@ class StateTree():
             #     print node.ID,
             # print
             # print 'EXAMINED:', to_examine.ID
-        # self.PrintSolution(to_examine.ID)
+        self.PrintSolution(child.ID)
         print 'STATES:', self.ID
         # self. StateLookup()
 
@@ -225,7 +225,7 @@ def Transpose(matrix):
 def FindColorStart(puzzle, num_colors):
     coordinates = {} # format: {0:[r0,c0], 1:[r1,c1],...} where r = row, c = col
     dim = len(puzzle)
-    color_nums = range(dim) # list of all color numbers
+    color_nums = range(num_colors) # list of all color numbers
     # find coordinate for each color start
     for row_i in xrange(dim):
         for col_i in xrange(dim):
@@ -238,6 +238,8 @@ def FindColorStart(puzzle, num_colors):
                 coordinates[num_found] = [row_i, col_i]
 
     # error checking to make sure right number of colors were found
+    print 'COORDINATES: %r' % coordinates
+    print 'START COLORS TO BE FOUND: %r' % range(num_colors)
     if len(coordinates) != num_colors:
         print 'ERROR: PROBLEMS FINDING COLORS'
         print 'COORDINATES: %r' % coordinates
@@ -254,7 +256,9 @@ def FindColorStart(puzzle, num_colors):
 def FindColorEnd(puzzle, num_colors):
     coordinates = {} # format: {0:[r0,c0], 1:[r1,c1],...}  where r = row, c = col
     dim = len(puzzle)
-    color_nums = range(dim) # list of all color numbers
+    color_nums = range(num_colors) # list of all color numbers
+    print color_nums
+    colors_found = []
     # find coordinate for each color start
     for row_i in xrange(dim):
         for col_i in xrange(dim):
@@ -263,15 +267,17 @@ def FindColorEnd(puzzle, num_colors):
             if char_found == 'e':
                 continue
             # remove the first number of the pair from the color_nums list
-            if int(char_found) in color_nums:
-                num_found = int(char_found)
-                color_nums.remove(num_found)
+            num_found = int(char_found)
+            if (num_found in color_nums) and (num_found not in colors_found):
+                colors_found.append(num_found)
+                # color_nums.remove(num_found)
             # if the number doesnt exist in color_nums then it is end number
-            else:
+            elif num_found in colors_found:
                 num_found = int(char_found)
                 coordinates[num_found] = [row_i, col_i]
 
     # error checking to make sure right number of colors were found
+    print 'COORDINATES: %r' % coordinates
     if len(coordinates) != num_colors:
         print 'ERROR: PROBLEMS FINDING COLORS'
         print 'COORDINATES: %r' % coordinates
@@ -382,10 +388,13 @@ random.seed()
 
 pzzl_num = 2
 (num_colors, pzzl_array) = ReadInput(pzzl_num)
-print '== INITIAL PUZZLE =='
-Visualize(pzzl_array)
-PTree = StateTree(pzzl_array, num_colors)
-PTree.BreadthFirstTreeSearch()
+
+for num_colors_step in xrange(1, num_colors+1):
+    print num_colors_step
+    print '== INITIAL PUZZLE =='
+    Visualize(pzzl_array)
+    PTree = StateTree(pzzl_array, num_colors_step)
+    pzzl_array = PTree.BreadthFirstTreeSearch()
 print("--- %s seconds ---" % (time.time() - start_time))
 
 

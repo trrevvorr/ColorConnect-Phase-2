@@ -76,8 +76,7 @@ class StateTree():
                 child.path_head = action_coord
                 # update child's path cost
                 child.path_cost = to_examine.path_cost + 1
-                # push child onto queue
-                queue.append(child)
+                # store child in dictionary for reference later
                 self.state_dict[child.ID] = child
                 # check if child is Goal State
                 if self.VerifyFinal(child.state):
@@ -99,6 +98,9 @@ class StateTree():
                             return solution_list
                         else:
                             print 'TEMP GOAL FAILED'
+                else:
+                    # push child onto queue
+                    queue.append(child)
             # if found_final: break
 
             # if self.ID > interupt_state:
@@ -363,11 +365,14 @@ pzzl_num = 2
 print '== INITIAL PUZZLE =='
 Visualize(pzzl_array)
 PTree = StateTree(pzzl_array, num_colors, 0)
-pzzl_array = PTree.BreadthFirstTreeSearch()
+pzzl_sol = PTree.BreadthFirstTreeSearch()
 
 print '== PUZZLE SOLUTION =='
-for solution in pzzl_array:
-    Visualize(solution)
+if pzzl_sol == False:
+    print 'NO SOLUTION POSSIBLE!'
+else:
+    for solution in pzzl_sol:
+        Visualize(solution)
 
 print("--- %s seconds ---" % (time.time() - start_time))
 

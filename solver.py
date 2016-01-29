@@ -51,20 +51,14 @@ class StateTree():
         total_time_on_action = 0.0
         total_time_on_creation = 0.0
         BFTS_start_time = time.time()
+        found_final = False
 
-        while True:
+        while not found_final:
             # dequeue the front element
             to_examine = queue.pop(0)
             # Visualize(to_examine.state)
             # examine element
-            time_before_final_check = time.time()
             colors_connected = self.VerifyFinal(to_examine.state)
-            if colors_connected == True:
-                # a goal state has been found
-                print 'GOALLLLLLLLLL!!!!!!!'
-                Visualize(to_examine.state)
-                break
-            total_time_on_final += (time.time() - time_before_final_check)
             # go through each color, finding actions for each
             color_numbers = range(self.num_colors)
             random.shuffle(color_numbers)
@@ -95,10 +89,22 @@ class StateTree():
                     child.path_heads[color_num] = action_coord
                     # update child's path cost
                     child.path_cost = to_examine.path_cost + 1
+                    # check if child is Goal State
+                    time_before_final_check = time.time()
+                    colors_connected = self.VerifyFinal(child.state)
+                    if colors_connected == True:
+                        # a goal state has been found
+                        print 'GOALLLLLLLLLL!!!!!!!'
+                        print 'STATE:', child.ID
+                        Visualize(child.state)
+                        found_final = True
+                        break
+                    total_time_on_final += (time.time() - time_before_final_check)
                     # push child onto queue
                     queue.append(child)
                     self.state_dict[child.ID] = child
                     total_time_on_creation += (time.time() - time_before_creation)
+                if found_final: break
 
             if self.ID > interupt_state:
                 print '-- TIME --'

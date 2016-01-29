@@ -49,7 +49,7 @@ class StateTree():
         self.color_start = FindColorStart(self.root.state, self.focus_color)
         self.root.path_head = self.color_start
         self.color_end = FindColorEnd(self.root.state, self.focus_color)
-        self.root.path_cost = 0
+        self.root.path_cost = 1
         # dictionary of states indexed by their ID
         self.state_dict = {self.root.ID:self.root}
 
@@ -62,34 +62,40 @@ class StateTree():
         total_time_on_action = 0.0
         total_time_on_creation = 0.0
         BFTS_start_time = time.time()
-        found_final = False
 
-        while not found_final:
-            # dequeue the front element
+        # Loop until solution is found or found not to exist
+        while True:
+            # fist check if queue is empty
             if len(queue) == 0:
                 # queue is empty, no solution could be found
                 return False
+            # dequeue the front element
             to_examine = queue.pop(0)
             # examine element
             if self.VerifyFinal(to_examine.state):
                 # a goal state has been found
+                # if all colors have been focused on then we're done
                 if self.focus_color+1 == self.num_colors:
-                    # if all colors have been focused on then we're done
-                    print 'FINAL GOAL:'
-                    Visualize(to_examine.state)
-                    return [to_examine.state]
+                    # print 'FINAL GOAL:'
+                    # Visualize(to_examine.state)
+                    return [to_examine]
+                # otherwise there are still more colors to connect
                 else:
+                    #print 'TEMP GOAL:'
+                    #Visualize(to_examine.state)
                     # create a new tree that focuses on the next color
-                    print 'TEMP GOAL:'
-                    Visualize(to_examine.state)
                     NextTree = StateTree(to_examine.state, self.num_colors, self.focus_color+1)
+                    NextTree.root.path_cost = to_examine.path_cost + 1
                     NextSolution = NextTree.BreadthFirstTreeSearch()
+                    # if the Next Solution was successful, add it to the list of successes
                     if NextSolution != False:
-                        solution_list = [to_examine.state]
+                        solution_list = [to_examine]
                         solution_list = solution_list + NextSolution
                         return solution_list
+                    # otherwise look for another solution to pass onto the next tree
                     else:
-                        print 'TEMP GOAL FAILED'
+                        pass
+                        # print 'TEMP GOAL FAILED'
             else:
                 # Visualize(to_examine.state)
                 valid_actions, valid_coords = Actions(to_examine.state, to_examine.path_head, self.color_end)
@@ -132,31 +138,7 @@ class StateTree():
                     # else:
                     #     # push child onto queue
                     queue.append(child)
-            # if found_final: break
 
-            # if self.ID > interupt_state:
-            #     print '-- TIME --'
-            #     print 'TOTAL:', (time.time() - BFTS_start_time)
-            #     print "SPLIT:", (time.time() - last_interrupt)
-            #     print '- '*10
-            #     print 'FINAL CHECK: ', total_time_on_final
-            #     print 'ACTION CHECK:', total_time_on_action
-            #     print 'CREATION:    ', total_time_on_creation
-            #     print '-- EXAM STATE --'
-            #     print 'STATE:', to_examine.ID
-            #     print 'DEPTH:', to_examine.path_cost
-            #     Visualize(to_examine.state)
-            #     print '-- LATEST CREATION --'
-            #     print 'STATE:', self.ID
-            #     print 'DEPTH:', (self.state_dict[self.ID]).path_cost
-            #     Visualize((self.state_dict[self.ID]).state)
-            #     interupt_state+=20000
-            #     last_interrupt = time.time()
-            # print 'FRONTIER:',
-            # for node in queue:
-            #     print node.ID,
-            # print
-            # print 'EXAMINED:', to_examine.ID
         self.PrintSolution(child.ID)
         print 'STATES:', self.ID
         # self. StateLookup()
@@ -180,7 +162,6 @@ class StateTree():
                 return True
 
         return False
-
 
 
     def PrintSolution(self, solution_ID):
@@ -227,16 +208,6 @@ def ReadInput(pzzl_file):
     # transpose array since dr. t wants the coordinates in [c, r] format
     # pzzl_array = Transpose(pzzl_array)
     return (num_colors, pzzl_array)
-
-
-def Transpose(matrix):
-    t_matrix = copy.deepcopy(matrix)
-    dem = len(matrix)
-
-    for i in xrange(dem):
-        for j in xrange(dem):
-            t_matrix[i][j] = matrix[j][i]
-    return t_matrix
 
 
 # PURPOSE: given the puzzle and the number of colors to find, function will
@@ -373,6 +344,13 @@ def DirPrint(directions):
     return dir_array
 
 
+def UglyPrint(state):
+    for row in state:
+        for char in row:
+            print char,
+        print
+
+
 def Visualize(puzzle):
     colors = [bcolors.HEADER, bcolors.OKGREEN, bcolors.WARNING,
                 bcolors.FAIL, bcolors.OKBLUE]
@@ -391,26 +369,36 @@ def Visualize(puzzle):
 ################################################################################
 #script, pzzl_num = argv
 random.seed()
-pzzl_file = sys.argv[1]
+appreciation_4_beauty = True
 
-(num_colors, pzzl_array) = ReadInput(pzzl_file)
+# get input file name
+if len(sys.argv) > 1:
+    pzzl_file = sys.argv[1]
+    # parse the input file
+    (num_colors, pzzl_array) = ReadInput(pzzl_file)
+else:
+    print 'ERROR: you must include the file name in argument list'
+    print 'EXAMPLE: "python solver.py input_p1.txt"'
+    exit(1)
 
-print '== INITIAL PUZZLE =='
-Visualize(pzzl_array)
+
 PTree = StateTree(pzzl_array, num_colors, 0)
 pzzl_sol = PTree.BreadthFirstTreeSearch()
 
-print '== PUZZLE SOLUTION =='
+# if puzzle is impossible, say so
 if pzzl_sol == False:
-    print 'NO SOLUTION POSSIBLE!'
+    print '== NO SOLUTION POSSIBLE! =='
+# UGLY SOLUTION
+elif not appreciation_4_beauty:
+    print int((time.time() - start_time)*1000000)
+    last_state = pzzl_sol[-1]
+    print last_state.path_cost
+    UglyPrint(last_state.state)
+# PRETTY SOLUTION
 else:
-    for solution in pzzl_sol:
-        Visualize(solution)
-
-print("--- %s seconds ---" % (time.time() - start_time))
-
-
-###################################
-### TODO
-
-# remove all 'remove' statements as possible
+    print '== INITIAL PUZZLE =='
+    Visualize(pzzl_array)
+    for color_num, solution in enumerate(pzzl_sol):
+        print '== SOLVE %d ==' % color_num
+        Visualize(solution.state)
+    print '== FINISHED IN %4.4f SECONDS ==' % (time.time() - start_time)

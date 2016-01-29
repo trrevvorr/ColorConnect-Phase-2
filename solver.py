@@ -6,6 +6,7 @@
 # from sys import argv
 import re
 import copy
+import random
 
 ################################################################################
 ## CLASSES
@@ -43,6 +44,7 @@ class StateTree():
 
     def BreadthFirstTreeSearch(self):
         queue = [self.root]
+        ocational_period = 10000
 
         while True:
             # dequeue the front element
@@ -56,14 +58,16 @@ class StateTree():
                 Visualize(to_examine.state)
                 break
             # go through each color, finding actions for each
-            for color_num in to_examine.path_heads:
+            color_numbers = to_examine.path_heads.keys()
+            random.shuffle(color_numbers)
+            for color_num in color_numbers:
                 # ignore colors that have already found their goal state
                 if color_num in colors_connected: continue
                 # get the coordinates of the furthest point of the color's path
                 coord = to_examine.path_heads[color_num]
                 # retrive all valid actions from this color's path head
                 valid_actions, valid_coords = Actions(to_examine.state, coord)
-                print 'valid extentions of %d:' % color_num, valid_coords
+                # print 'valid extentions of %d:' % color_num, valid_coords
                 # create a new child state for each valid action
                 for i in xrange(len(valid_actions)):
                     action = valid_actions[i]
@@ -79,11 +83,15 @@ class StateTree():
                     # push child onto queue
                     queue.append(child)
                     self.state_dict[child.ID] = child
+            if self.ID > ocational_period:
+                print '.',
+                ocational_period+=10000
             # print 'FRONTIER:',
             # for node in queue:
             #     print node.ID,
             # print
-            print 'EXAMINED:', to_examine.ID
+            # print 'EXAMINED:', to_examine.ID
+        self.PrintSolution(to_examine.ID)
         self. StateLookup()
 
 
@@ -123,6 +131,23 @@ class StateTree():
             return True
         else:
             return colors_connected
+
+
+    def PrintSolution(self, solution_ID):
+        print '\n\n=== SOLUTION ==='
+        node = self.state_dict[solution_ID]
+        solution = [node.state]
+
+        while node.p_ID != None:
+            node_ID = node.p_ID
+            node = self.state_dict[node_ID]
+            solution.insert(0, node.state)
+
+        for state in solution:
+            Visualize(state)
+            print '      |'
+            print '      V'
+        print     '  FINISHED'
 
 
     def StateLookup(self):
@@ -238,8 +263,10 @@ def Actions(p_state, coord):
     valid_actions = []
     valid_coords = []
 
-    # action order: down, right, up, left
-    for action in [[-1,0], [0,1], [1,0], [0,-1]]:
+    # actions in order: down, right, up, left
+    action_options = [[-1,0], [0,1], [1,0], [0,-1]]
+    random.shuffle(action_options)
+    for action in action_options:
         new_row = coord[0]+action[0]
         new_col = coord[1]+action[1]
         # check if move is out-of-bounds
@@ -289,10 +316,11 @@ def Visualize(puzzle):
 ## Main
 ################################################################################
 #script, pzzl_num = argv
-pzzl_num = 2
+random.seed()
+print random.randint(1,5)
+pzzl_num = 1
 (num_colors, pzzl_array) = ReadInput(pzzl_num)
 print '== INITIAL PUZZLE =='
 Visualize(pzzl_array)
 PTree = StateTree(pzzl_array, num_colors)
-# print PTree.VerifyFinal(PTree.root.state)
 PTree.BreadthFirstTreeSearch()

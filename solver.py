@@ -23,21 +23,21 @@ class Node():
         self.action = action # format: [x, y] where x and y are in [-1, 0, 1]
         self.path_cost = None # integer (depth of state in tree)
 
-        self.path_heads = {} # dictionary containing the furthes a color path
-        # has travled in the current state. format: {0:[r0,c0], 1:[r1,c1], ...}
+        self.path_head = []
 
 
 class StateTree():
     """Creates a State Tree for all possible states of Puzzle"""
-    def __init__(self, initial_puzzle, number_of_colors):
+    def __init__(self, initial_puzzle, number_of_colors, focus_color=0):
         # a globla ID index for creating unique node IDs
         self.ID = 0
         self.root = Node(self.ID, state=initial_puzzle)
         # self.puzzle = initial_puzzle
         self.num_colors = number_of_colors
-        self.color_start = FindColorStart(self.root.state, self.num_colors)
-        self.root.path_heads = self.color_start
-        self.color_end = FindColorEnd(self.root.state, self.num_colors)
+        self.focus_color = focus_color
+        self.color_start = FindColorStart(self.root.state, self.focus_color)
+        self.root.path_head = self.color_start
+        self.color_end = FindColorEnd(self.root.state, self.focus_color)
         self.root.path_cost = 0
         # dictionary of states indexed by their ID
         self.state_dict = {self.root.ID:self.root}
@@ -55,75 +55,70 @@ class StateTree():
 
         while not found_final:
             # dequeue the front element
+            if len(queue) == 0:
+                # queue is empty, no solution could be found
+                return False
             to_examine = queue.pop(0)
-            # Visualize(to_examine.state)
             # examine element
-            colors_connected = self.VerifyFinal(to_examine.state)
-            # go through each color, finding actions for each
-            color_numbers = range(self.num_colors)
-            random.shuffle(color_numbers)
             # Visualize(to_examine.state)
-            for color_num in color_numbers:
-                # ignore colors that have already found their goal state
-                if color_num in colors_connected: continue
-                # get the coordinates of the furthest point of the color's path
-                coord = to_examine.path_heads[color_num]
-                # retrive all valid actions from this color's path head
-                time_before_action_check = time.time()
-                valid_actions, valid_coords = Actions(to_examine.state, coord, self.color_end)
-                total_time_on_action += (time.time() - time_before_action_check)
-                # print '%d: VALID ACTIONS: %r' % (color_num, DirPrint(valid_actions))
-                # print 'valid extentions of %d:' % color_num, valid_coords
-                # create a new child state for each valid action
-                for i in xrange(len(valid_actions)):
-                    time_before_creation = time.time()
-                    action = valid_actions[i]
-                    action_coord = valid_coords[i]
-                    self.ID += 1
-                    # retulting child state from parent acted on by action
-                    c_state = Result(to_examine.state, coord, action)
-                    # create new node
-                    child = Node(ID=self.ID, parent_node=to_examine.ID, state=c_state, action=action)
-                    # updated the child's path heads
-                    child.path_heads = to_examine.path_heads.copy()
-                    child.path_heads[color_num] = action_coord
-                    # update child's path cost
-                    child.path_cost = to_examine.path_cost + 1
-                    # push child onto queue
-                    queue.append(child)
-                    self.state_dict[child.ID] = child
-                    # check if child is Goal State
-                    time_before_final_check = time.time()
-                    colors_connected = self.VerifyFinal(child.state)
-                    if colors_connected == True:
-                        # a goal state has been found
-                        print 'GOALLLLLLLLLL!!!!!!!'
-                        print 'STATE:', child.ID
+            valid_actions, valid_coords = Actions(to_examine.state, to_examine.path_head, self.color_end)
+            # print '%d: VALID ACTIONS: %r' % (self.focus_color, DirPrint(valid_actions))
+            # create a new child state for each valid action
+            for i in xrange(len(valid_actions)):
+                action = valid_actions[i]
+                action_coord = valid_coords[i]
+                self.ID += 1
+                # retulting child state from parent acted on by action
+                c_state = Result(to_examine.state, to_examine.path_head, action)
+                # create new node
+                child = Node(ID=self.ID, parent_node=to_examine.ID, state=c_state, action=action)
+                # updated the child's path heads
+                child.path_head = action_coord
+                # update child's path cost
+                child.path_cost = to_examine.path_cost + 1
+                # push child onto queue
+                queue.append(child)
+                self.state_dict[child.ID] = child
+                # check if child is Goal State
+                if self.VerifyFinal(child.state):
+                    # a goal state has been found
+                    if self.focus_color+1 == self.num_colors:
+                        # if all colors have been focused on then we're done
+                        print 'FINAL GOAL:'
                         Visualize(child.state)
-                        found_final = True
-                        return child.state
-                    total_time_on_final += (time.time() - time_before_final_check)
-                    total_time_on_creation += (time.time() - time_before_creation)
-                if found_final: break
+                        return [child.state]
+                    else:
+                        # create a new tree that focuses on the next color
+                        print 'TEMP GOAL:'
+                        Visualize(child.state)
+                        NextTree = StateTree(child.state, self.num_colors, self.focus_color+1)
+                        NextSolution = NextTree.BreadthFirstTreeSearch()
+                        if NextSolution != False:
+                            solution_list = [child.state]
+                            solution_list = solution_list + NextSolution
+                            return solution_list
+                        else:
+                            print 'TEMP GOAL FAILED'
+            # if found_final: break
 
-            if self.ID > interupt_state:
-                print '-- TIME --'
-                print 'TOTAL:', (time.time() - BFTS_start_time)
-                print "SPLIT:", (time.time() - last_interrupt)
-                print '- '*10
-                print 'FINAL CHECK: ', total_time_on_final
-                print 'ACTION CHECK:', total_time_on_action
-                print 'CREATION:    ', total_time_on_creation
-                print '-- EXAM STATE --'
-                print 'STATE:', to_examine.ID
-                print 'DEPTH:', to_examine.path_cost
-                Visualize(to_examine.state)
-                print '-- LATEST CREATION --'
-                print 'STATE:', self.ID
-                print 'DEPTH:', (self.state_dict[self.ID]).path_cost
-                Visualize((self.state_dict[self.ID]).state)
-                interupt_state+=20000
-                last_interrupt = time.time()
+            # if self.ID > interupt_state:
+            #     print '-- TIME --'
+            #     print 'TOTAL:', (time.time() - BFTS_start_time)
+            #     print "SPLIT:", (time.time() - last_interrupt)
+            #     print '- '*10
+            #     print 'FINAL CHECK: ', total_time_on_final
+            #     print 'ACTION CHECK:', total_time_on_action
+            #     print 'CREATION:    ', total_time_on_creation
+            #     print '-- EXAM STATE --'
+            #     print 'STATE:', to_examine.ID
+            #     print 'DEPTH:', to_examine.path_cost
+            #     Visualize(to_examine.state)
+            #     print '-- LATEST CREATION --'
+            #     print 'STATE:', self.ID
+            #     print 'DEPTH:', (self.state_dict[self.ID]).path_cost
+            #     Visualize((self.state_dict[self.ID]).state)
+            #     interupt_state+=20000
+            #     last_interrupt = time.time()
             # print 'FRONTIER:',
             # for node in queue:
             #     print node.ID,
@@ -135,29 +130,23 @@ class StateTree():
 
 
     def VerifyFinal(self, pzzl_state): # REVIEW: ask if i should name the function FINAL
-        colors_connected = []
         upper_bound = len(pzzl_state)
         lower_bound = 0
 
-        for color in self.color_end:
-            end = self.color_end[color]
-            for direction in [[-1,0], [0,1], [1,0], [0,-1]]:
-                adj_row = end[0]+direction[0]
-                adj_col = end[1]+direction[1]
-                # ignore if out-of-bounds
-                if adj_col < lower_bound or adj_col == upper_bound:
-                    continue
-                if adj_row < lower_bound or adj_row == upper_bound:
-                    continue
+        for direction in [[-1,0], [0,1], [1,0], [0,-1]]:
+            adj_row = self.color_end[0]+direction[0]
+            adj_col = self.color_end[1]+direction[1]
+            # ignore if out-of-bounds
+            if adj_col < lower_bound or adj_col == upper_bound:
+                continue
+            if adj_row < lower_bound or adj_row == upper_bound:
+                continue
 
-                if pzzl_state[adj_row][adj_col] == str(color):
-                    # color has been connected
-                    colors_connected.append(color)
-                    break
-        if len(colors_connected) == self.num_colors:
-            return True
-        else:
-            return colors_connected
+            if pzzl_state[adj_row][adj_col] == str(self.focus_color):
+                # color has been connected
+                return True
+
+        return False
 
 
 
@@ -222,80 +211,62 @@ def Transpose(matrix):
 # return a dict with the FIRST occurance of the number as the key and its
 # coordinates as the value
 # OUTPUT: dictionary in the format: {0:[r0,c0], 1:[r1,c1],...}
-def FindColorStart(puzzle, num_colors):
-    coordinates = {} # format: {0:[r0,c0], 1:[r1,c1],...} where r = row, c = col
+def FindColorStart(puzzle, color):
     dim = len(puzzle)
-    color_nums = range(num_colors) # list of all color numbers
     # find coordinate for each color start
     for row_i in xrange(dim):
         for col_i in xrange(dim):
             char_found = puzzle[row_i][col_i]
             if char_found == 'e':
                 continue
-            if int(char_found) in color_nums:
-                num_found = int(char_found)
-                color_nums.remove(num_found)
-                coordinates[num_found] = [row_i, col_i]
+            if int(char_found) == color:
+                coordinates = [row_i, col_i]
+                # print 'COORDINATES OF FIRST %d: %r' % (color, coordinates)
+                return coordinates
 
-    # error checking to make sure right number of colors were found
-    print 'COORDINATES: %r' % coordinates
-    print 'START COLORS TO BE FOUND: %r' % range(num_colors)
-    if len(coordinates) != num_colors:
-        print 'ERROR: PROBLEMS FINDING COLORS'
-        print 'COORDINATES: %r' % coordinates
-        print 'START COLORS TO BE FOUND: %r' % range(num_colors)
-        exit(1)
-
-    return coordinates
+    # error checking to make sure color was found
+    print 'FindColorStart ERROR: %d WAS NOT FOUND IN:' % color
+    Visualize(puzzle)
+    print 'END ERROR'
+    exit(1)
 
 
 # PURPOSE: given the puzzle and the number of colors to find, function will
 # return a dict with the LAST occurance of the number as the key and its
 # coordinates as the value
 # OUTPUT: dictionary in the format: {0:[r0,c0], 1:[r1,c1],...}
-def FindColorEnd(puzzle, num_colors):
-    coordinates = {} # format: {0:[r0,c0], 1:[r1,c1],...}  where r = row, c = col
+def FindColorEnd(puzzle, color):
     dim = len(puzzle)
-    color_nums = range(num_colors) # list of all color numbers
-    print color_nums
-    colors_found = []
-    # find coordinate for each color start
+    second_find = False
+    # find coordinate for each color end
     for row_i in xrange(dim):
         for col_i in xrange(dim):
             char_found = puzzle[row_i][col_i]
-            # if char found is an e then go to then skip it
             if char_found == 'e':
                 continue
-            # remove the first number of the pair from the color_nums list
-            num_found = int(char_found)
-            if (num_found in color_nums) and (num_found not in colors_found):
-                colors_found.append(num_found)
-                # color_nums.remove(num_found)
-            # if the number doesnt exist in color_nums then it is end number
-            elif num_found in colors_found:
-                num_found = int(char_found)
-                coordinates[num_found] = [row_i, col_i]
+            if int(char_found) == color:
+                if second_find:
+                    coordinates = [row_i, col_i]
+                    # print 'COORDINATES OF LAST %d: %r' % (color, coordinates)
+                    return coordinates
+                else:
+                    second_find = True
 
-    # error checking to make sure right number of colors were found
-    print 'COORDINATES: %r' % coordinates
-    if len(coordinates) != num_colors:
-        print 'ERROR: PROBLEMS FINDING COLORS'
-        print 'COORDINATES: %r' % coordinates
-        print 'END COLORS TO BE FOUND: %r' % range(num_colors)
-        exit(1)
-
-    return coordinates
+    # error checking to make sure color was found
+    print 'FindColorEnd ERROR: %d WAS NOT FOUND IN:' % color
+    Visualize(puzzle)
+    print 'END ERROR'
+    exit(1)
 
 
 def TraceBack(search_tree, state_id):
     pass
 
 
-def Actions(p_state, coord, end_positions):
+def Actions(p_state, coord, end_coord):
     upper_bound = len(p_state)
     lower_bound = 0
     color =  int(p_state[coord[0]][coord[1]])
-    end_coord = end_positions[color]
     valid_actions = []
     valid_coords = []
 
@@ -389,12 +360,15 @@ random.seed()
 pzzl_num = 2
 (num_colors, pzzl_array) = ReadInput(pzzl_num)
 
-for num_colors_step in xrange(1, num_colors+1):
-    print num_colors_step
-    print '== INITIAL PUZZLE =='
-    Visualize(pzzl_array)
-    PTree = StateTree(pzzl_array, num_colors_step)
-    pzzl_array = PTree.BreadthFirstTreeSearch()
+print '== INITIAL PUZZLE =='
+Visualize(pzzl_array)
+PTree = StateTree(pzzl_array, num_colors, 0)
+pzzl_array = PTree.BreadthFirstTreeSearch()
+
+print '== PUZZLE SOLUTION =='
+for solution in pzzl_array:
+    Visualize(solution)
+
 print("--- %s seconds ---" % (time.time() - start_time))
 
 

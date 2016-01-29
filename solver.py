@@ -60,46 +60,66 @@ class StateTree():
                 return False
             to_examine = queue.pop(0)
             # examine element
-            # Visualize(to_examine.state)
-            valid_actions, valid_coords = Actions(to_examine.state, to_examine.path_head, self.color_end)
-            # print '%d: VALID ACTIONS: %r' % (self.focus_color, DirPrint(valid_actions))
-            # create a new child state for each valid action
-            for i in xrange(len(valid_actions)):
-                action = valid_actions[i]
-                action_coord = valid_coords[i]
-                self.ID += 1
-                # retulting child state from parent acted on by action
-                c_state = Result(to_examine.state, to_examine.path_head, action)
-                # create new node
-                child = Node(ID=self.ID, parent_node=to_examine.ID, state=c_state, action=action)
-                # updated the child's path heads
-                child.path_head = action_coord
-                # update child's path cost
-                child.path_cost = to_examine.path_cost + 1
-                # store child in dictionary for reference later
-                self.state_dict[child.ID] = child
-                # check if child is Goal State
-                if self.VerifyFinal(child.state):
-                    # a goal state has been found
-                    if self.focus_color+1 == self.num_colors:
-                        # if all colors have been focused on then we're done
-                        print 'FINAL GOAL:'
-                        Visualize(child.state)
-                        return [child.state]
-                    else:
-                        # create a new tree that focuses on the next color
-                        print 'TEMP GOAL:'
-                        Visualize(child.state)
-                        NextTree = StateTree(child.state, self.num_colors, self.focus_color+1)
-                        NextSolution = NextTree.BreadthFirstTreeSearch()
-                        if NextSolution != False:
-                            solution_list = [child.state]
-                            solution_list = solution_list + NextSolution
-                            return solution_list
-                        else:
-                            print 'TEMP GOAL FAILED'
+            if self.VerifyFinal(to_examine.state):
+                # a goal state has been found
+                if self.focus_color+1 == self.num_colors:
+                    # if all colors have been focused on then we're done
+                    print 'FINAL GOAL:'
+                    Visualize(to_examine.state)
+                    return [to_examine.state]
                 else:
-                    # push child onto queue
+                    # create a new tree that focuses on the next color
+                    print 'TEMP GOAL:'
+                    Visualize(to_examine.state)
+                    NextTree = StateTree(to_examine.state, self.num_colors, self.focus_color+1)
+                    NextSolution = NextTree.BreadthFirstTreeSearch()
+                    if NextSolution != False:
+                        solution_list = [to_examine.state]
+                        solution_list = solution_list + NextSolution
+                        return solution_list
+                    else:
+                        print 'TEMP GOAL FAILED'
+            else:
+                # Visualize(to_examine.state)
+                valid_actions, valid_coords = Actions(to_examine.state, to_examine.path_head, self.color_end)
+                # print '%d: VALID ACTIONS: %r' % (self.focus_color, DirPrint(valid_actions))
+                # create a new child state for each valid action
+                for i in xrange(len(valid_actions)):
+                    action = valid_actions[i]
+                    action_coord = valid_coords[i]
+                    self.ID += 1
+                    # retulting child state from parent acted on by action
+                    c_state = Result(to_examine.state, to_examine.path_head, action)
+                    # create new node
+                    child = Node(ID=self.ID, parent_node=to_examine.ID, state=c_state, action=action)
+                    # updated the child's path heads
+                    child.path_head = action_coord
+                    # update child's path cost
+                    child.path_cost = to_examine.path_cost + 1
+                    # store child in dictionary for reference later
+                    self.state_dict[child.ID] = child
+                    # check if child is Goal State
+                    # if self.VerifyFinal(child.state):
+                    #     # a goal state has been found
+                    #     if self.focus_color+1 == self.num_colors:
+                    #         # if all colors have been focused on then we're done
+                    #         print 'FINAL GOAL:'
+                    #         Visualize(child.state)
+                    #         return [child.state]
+                    #     else:
+                    #         # create a new tree that focuses on the next color
+                    #         print 'TEMP GOAL:'
+                    #         Visualize(child.state)
+                    #         NextTree = StateTree(child.state, self.num_colors, self.focus_color+1)
+                    #         NextSolution = NextTree.BreadthFirstTreeSearch()
+                    #         if NextSolution != False:
+                    #             solution_list = [child.state]
+                    #             solution_list = solution_list + NextSolution
+                    #             return solution_list
+                    #         else:
+                    #             print 'TEMP GOAL FAILED'
+                    # else:
+                    #     # push child onto queue
                     queue.append(child)
             # if found_final: break
 
@@ -359,7 +379,7 @@ def Visualize(puzzle):
 #script, pzzl_num = argv
 random.seed()
 
-pzzl_num = 2
+pzzl_num = 2  # TODO: make it so I can enter this number via command line
 (num_colors, pzzl_array) = ReadInput(pzzl_num)
 
 print '== INITIAL PUZZLE =='

@@ -6,6 +6,11 @@
 import random
 random.seed()
 
+import time
+start_time = time.time()
+
 p = [[0,1], [1,2]]
-p2 = p.remove([0,1])
-print p2
+p.remove([0,1])
+print p
+
+print("--- %s seconds ---" % (time.time() - start_time))

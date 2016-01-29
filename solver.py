@@ -7,6 +7,8 @@
 import re
 import copy
 import random
+import time
+start_time = time.time()
 
 ################################################################################
 ## CLASSES
@@ -60,13 +62,15 @@ class StateTree():
             # go through each color, finding actions for each
             color_numbers = to_examine.path_heads.keys()
             random.shuffle(color_numbers)
+            # Visualize(to_examine.state)
             for color_num in color_numbers:
                 # ignore colors that have already found their goal state
                 if color_num in colors_connected: continue
                 # get the coordinates of the furthest point of the color's path
                 coord = to_examine.path_heads[color_num]
                 # retrive all valid actions from this color's path head
-                valid_actions, valid_coords = Actions(to_examine.state, coord)
+                valid_actions, valid_coords = Actions(to_examine.state, coord, self.color_end)
+                # print '%d: VALID ACTIONS: %r' % (color_num, DirPrint(valid_actions))
                 # print 'valid extentions of %d:' % color_num, valid_coords
                 # create a new child state for each valid action
                 for i in xrange(len(valid_actions)):
@@ -84,7 +88,7 @@ class StateTree():
                     queue.append(child)
                     self.state_dict[child.ID] = child
             if self.ID > ocational_period:
-                print '.',
+                x = raw_input('Press Enter to continue')
                 ocational_period+=10000
             # print 'FRONTIER:',
             # for node in queue:
@@ -246,9 +250,11 @@ def TraceBack(search_tree, state_id):
     pass
 
 
-def Actions(p_state, coord):
+def Actions(p_state, coord, end_positions):
     upper_bound = len(p_state)
     lower_bound = 0
+    color =  int(p_state[coord[0]][coord[1]])
+    end_coord = end_positions[color]
     valid_actions = []
     valid_coords = []
 
@@ -267,8 +273,22 @@ def Actions(p_state, coord):
         if p_state[new_row][new_col] != 'e':
             continue
         # check if move results in path becoming adjacent to itself
-        
-        # if move is in-bounds and space is not occupied, it is a valid move
+        adj_itself = 0
+        for adj in action_options:
+            adj_row = new_row+adj[0]
+            adj_col = new_col+adj[1]
+            # check if adjacent square is out-of-bounds
+            if adj_col < lower_bound or adj_col == upper_bound:
+                continue
+            if adj_row < lower_bound or adj_row == upper_bound:
+                continue
+            if p_state[adj_row][adj_col] == str(color):
+                if [adj_row, adj_col] != end_coord:
+                    adj_itself += 1
+        if adj_itself > 1:
+            continue
+        # if move is in-bounds, space is not occupied, and path isn't
+        # adjacent to itself, it is a valid move
         new_coord = [new_row, new_col]
         valid_actions.append(action)
         valid_coords.append(new_coord)
@@ -288,6 +308,26 @@ def Result(p_state, coord, action):
     return new_state
 
 
+def DirPrint(directions):
+    dir_array = []
+    for direction in directions:
+        row_dir = direction[0]
+        col_dir = direction[1]
+
+        if row_dir == 0:
+            if col_dir == 1:
+                dir_array.append('right')
+            elif col_dir == -1:
+                dir_array.append('left')
+            else:
+                dir_array.append('stay')
+        elif row_dir == 1:
+            dir_array.append('down')
+        else:
+            dir_array.append('up')
+
+    return dir_array
+
 
 def Visualize(puzzle):
     print '%s%s' % (('+---' * len(puzzle)), '+') # top horizontal divider
@@ -305,9 +345,10 @@ def Visualize(puzzle):
 #script, pzzl_num = argv
 random.seed()
 
-pzzl_num = 2
+pzzl_num = 1
 (num_colors, pzzl_array) = ReadInput(pzzl_num)
 print '== INITIAL PUZZLE =='
 Visualize(pzzl_array)
 PTree = StateTree(pzzl_array, num_colors)
 PTree.BreadthFirstTreeSearch()
+print("--- %s seconds ---" % (time.time() - start_time))

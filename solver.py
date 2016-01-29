@@ -38,15 +38,14 @@ class StateTree():
         self.color_start = FindColorStart(self.root.state, self.num_colors)
         self.root.path_heads = self.color_start
         self.color_end = FindColorEnd(self.root.state, self.num_colors)
-        # dictionary of relations. format: {parent_ID:child_ID}
-        self.relation_dict = {self.root.ID:None}
         # dictionary of states indexed by their ID
         self.state_dict = {self.root.ID:self.root}
 
 
     def BreadthFirstTreeSearch(self):
         queue = [self.root]
-        ocational_period = 10000
+        ocational_period = 20000
+        last_interrupt = time.time()
 
         while True:
             # dequeue the front element
@@ -87,15 +86,20 @@ class StateTree():
                     # push child onto queue
                     queue.append(child)
                     self.state_dict[child.ID] = child
+
             if self.ID > ocational_period:
-                x = raw_input('Press Enter to continue')
-                ocational_period+=10000
+                print "split: %s" % (time.time() - last_interrupt)
+                last_interrupt = time.time()
+                print 'STATE %d' % to_examine.ID
+                Visualize(to_examine.state)
+                ocational_period+=20000
             # print 'FRONTIER:',
             # for node in queue:
             #     print node.ID,
             # print
             # print 'EXAMINED:', to_examine.ID
-        self.PrintSolution(to_examine.ID)
+        # self.PrintSolution(to_examine.ID)
+        print 'STATES:', self.ID
         # self. StateLookup()
 
 
@@ -345,10 +349,16 @@ def Visualize(puzzle):
 #script, pzzl_num = argv
 random.seed()
 
-pzzl_num = 1
+pzzl_num = 2
 (num_colors, pzzl_array) = ReadInput(pzzl_num)
 print '== INITIAL PUZZLE =='
 Visualize(pzzl_array)
 PTree = StateTree(pzzl_array, num_colors)
 PTree.BreadthFirstTreeSearch()
 print("--- %s seconds ---" % (time.time() - start_time))
+
+
+###################################
+### TODO
+
+# remove all 'remove' statements as possible

@@ -38,28 +38,35 @@ class StateTree():
         self.color_start = FindColorStart(self.root.state, self.num_colors)
         self.root.path_heads = self.color_start
         self.color_end = FindColorEnd(self.root.state, self.num_colors)
+        self.root.path_cost = 0
         # dictionary of states indexed by their ID
         self.state_dict = {self.root.ID:self.root}
 
 
     def BreadthFirstTreeSearch(self):
         queue = [self.root]
-        ocational_period = 20000
+        interupt_state = 20000
         last_interrupt = time.time()
+        total_time_on_final = 0.0
+        total_time_on_action = 0.0
+        total_time_on_creation = 0.0
+        BFTS_start_time = time.time()
 
         while True:
             # dequeue the front element
             to_examine = queue.pop(0)
             # Visualize(to_examine.state)
             # examine element
+            time_before_final_check = time.time()
             colors_connected = self.VerifyFinal(to_examine.state)
             if colors_connected == True:
                 # a goal state has been found
                 print 'GOALLLLLLLLLL!!!!!!!'
                 Visualize(to_examine.state)
                 break
+            total_time_on_final += (time.time() - time_before_final_check)
             # go through each color, finding actions for each
-            color_numbers = to_examine.path_heads.keys()
+            color_numbers = range(self.num_colors)
             random.shuffle(color_numbers)
             # Visualize(to_examine.state)
             for color_num in color_numbers:
@@ -68,11 +75,14 @@ class StateTree():
                 # get the coordinates of the furthest point of the color's path
                 coord = to_examine.path_heads[color_num]
                 # retrive all valid actions from this color's path head
+                time_before_action_check = time.time()
                 valid_actions, valid_coords = Actions(to_examine.state, coord, self.color_end)
+                total_time_on_action += (time.time() - time_before_action_check)
                 # print '%d: VALID ACTIONS: %r' % (color_num, DirPrint(valid_actions))
                 # print 'valid extentions of %d:' % color_num, valid_coords
                 # create a new child state for each valid action
                 for i in xrange(len(valid_actions)):
+                    time_before_creation = time.time()
                     action = valid_actions[i]
                     action_coord = valid_coords[i]
                     self.ID += 1
@@ -83,16 +93,31 @@ class StateTree():
                     # updated the child's path heads
                     child.path_heads = to_examine.path_heads.copy()
                     child.path_heads[color_num] = action_coord
+                    # update child's path cost
+                    child.path_cost = to_examine.path_cost + 1
                     # push child onto queue
                     queue.append(child)
                     self.state_dict[child.ID] = child
+                    total_time_on_creation += (time.time() - time_before_creation)
 
-            if self.ID > ocational_period:
-                print "split: %s" % (time.time() - last_interrupt)
-                last_interrupt = time.time()
-                print 'STATE %d' % to_examine.ID
+            if self.ID > interupt_state:
+                print '-- TIME --'
+                print 'TOTAL:', (time.time() - BFTS_start_time)
+                print "SPLIT:", (time.time() - last_interrupt)
+                print '- '*10
+                print 'FINAL CHECK: ', total_time_on_final
+                print 'ACTION CHECK:', total_time_on_action
+                print 'CREATION:    ', total_time_on_creation
+                print '-- EXAM STATE --'
+                print 'STATE:', to_examine.ID
+                print 'DEPTH:', to_examine.path_cost
                 Visualize(to_examine.state)
-                ocational_period+=20000
+                print '-- LATEST CREATION --'
+                print 'STATE:', self.ID
+                print 'DEPTH:', (self.state_dict[self.ID]).path_cost
+                Visualize((self.state_dict[self.ID]).state)
+                interupt_state+=20000
+                last_interrupt = time.time()
             # print 'FRONTIER:',
             # for node in queue:
             #     print node.ID,

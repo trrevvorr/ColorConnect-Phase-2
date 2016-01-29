@@ -6,7 +6,6 @@
 import random
 random.seed()
 
-p = [[1, 2], [3, 4]]
-
-random.shuffle(p)
-print p
+p = [[0,1], [1,2]]
+p2 = p.remove([0,1])
+print p2

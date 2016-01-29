@@ -92,45 +92,34 @@ class StateTree():
             # print
             # print 'EXAMINED:', to_examine.ID
         self.PrintSolution(to_examine.ID)
-        self. StateLookup()
+        # self. StateLookup()
 
 
-    def VerifyFinal(self, pzzl_state):   # REVIEW: ask if i should name the function FINAL
-        p_copy = copy.deepcopy(pzzl_state)
+    def VerifyFinal(self, pzzl_state): # REVIEW: ask if i should name the function FINAL
         colors_connected = []
         upper_bound = len(pzzl_state)
         lower_bound = 0
 
-        for color in self.color_start:
-            start = self.color_start[color]
+        for color in self.color_end:
             end = self.color_end[color]
-            curr_loc = start
+            for direction in [[-1,0], [0,1], [1,0], [0,-1]]:
+                adj_row = end[0]+direction[0]
+                adj_col = end[1]+direction[1]
+                # ignore if out-of-bounds
+                if adj_col < lower_bound or adj_col == upper_bound:
+                    continue
+                if adj_row < lower_bound or adj_row == upper_bound:
+                    continue
 
-            # loop until end of line is reached
-            while p_copy[curr_loc[0]][curr_loc[1]] != 'x':
-                old_loc = curr_loc[:]
-                if curr_loc == end:
+                if pzzl_state[adj_row][adj_col] == str(color):
+                    # color has been connected
                     colors_connected.append(color)
                     break
-                for action in [[-1,0], [0,1], [1,0], [0,-1]]:
-                    check_row = curr_loc[0]+action[0]
-                    check_col = curr_loc[1]+action[1]
-                    # ignore if out-of-bounds
-                    if check_col < lower_bound or check_col == upper_bound:
-                        continue
-                    if check_row < lower_bound or check_row == upper_bound:
-                        continue
-                    # if the path contiues
-                    if p_copy[check_row][check_col] == str(color):
-                        # move to the next location along the line
-                        curr_loc = [check_row, check_col]
-                        break
-                p_copy[old_loc[0]][old_loc[1]] = 'x'
-
         if len(colors_connected) == self.num_colors:
             return True
         else:
             return colors_connected
+
 
 
     def PrintSolution(self, solution_ID):
@@ -277,13 +266,14 @@ def Actions(p_state, coord):
         # check if space is already occupied
         if p_state[new_row][new_col] != 'e':
             continue
+        # check if move results in path becoming adjacent to itself
+        
         # if move is in-bounds and space is not occupied, it is a valid move
         new_coord = [new_row, new_col]
         valid_actions.append(action)
         valid_coords.append(new_coord)
 
     return (valid_actions, valid_coords)
-
 
 
 def Result(p_state, coord, action):
@@ -297,9 +287,6 @@ def Result(p_state, coord, action):
     new_state[new_row][new_col] = color_path_to_extend
     return new_state
 
-
-def MovePathHead(colors_path_head, action):
-    pass
 
 
 def Visualize(puzzle):
@@ -317,8 +304,8 @@ def Visualize(puzzle):
 ################################################################################
 #script, pzzl_num = argv
 random.seed()
-print random.randint(1,5)
-pzzl_num = 1
+
+pzzl_num = 2
 (num_colors, pzzl_array) = ReadInput(pzzl_num)
 print '== INITIAL PUZZLE =='
 Visualize(pzzl_array)

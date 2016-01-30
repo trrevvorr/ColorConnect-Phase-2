@@ -3,8 +3,7 @@
 #
 # Trevor Ross
 # 01/27/2016
-# from sys import argv
-import re
+
 import copy
 import random
 import sys
@@ -15,6 +14,7 @@ start_time = time.time()
 ## CLASSES
 ################################################################################
 
+# for use with printing pretty colors
 class bcolors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
@@ -33,27 +33,36 @@ class Node():
         self.state = state # format: [[... row 1 ...], [... row 2 ...], ...]
         self.action = action # format: [x, y] where x and y are in [-1, 0, 1]
         self.path_cost = None # integer (depth of state in tree)
-
-        self.path_head = []
+        # positon of the furthest point along the path
+        self.path_head = [] # format: [r, c]
 
 
 class StateTree():
-    """Creates a State Tree for all possible states of Puzzle"""
+    """State Tree for all valid states for color connect puzzle"""
     def __init__(self, initial_puzzle, number_of_colors, focus_color=0):
         # a globla ID index for creating unique node IDs
         self.ID = 0
+        # create a new node called "root"
         self.root = Node(self.ID, state=initial_puzzle)
-        # self.puzzle = initial_puzzle
+        # number of colors to connect
         self.num_colors = number_of_colors
+        # color to connect in this tree, recursive trees will worry about other colors
         self.focus_color = focus_color
+        # find the location of the start/end position of the focus color
         self.color_start = FindColorStart(self.root.state, self.focus_color)
         self.root.path_head = self.color_start
         self.color_end = FindColorEnd(self.root.state, self.focus_color)
+        # initial cost is 1 (copensation for not extding path through end state)
         self.root.path_cost = 1
-        # dictionary of states indexed by their ID
+        # dictionary of states indexed by their ID, so they can be looked up later
         self.state_dict = {self.root.ID:self.root}
 
-
+    # PURPOSE: employs the breadth-first-tree-search algorithm on JUST THE
+    # FOCUS COLOR. Other colors will be dealth with in recursive calls
+    # IF SUCCESSFULL: will recursively create a new tree that will BFTS for
+    # the next focus color. This will contiue until all colors are connected
+    # IF UNSUCCESSFULL: will return False, telling the tree from which it may
+    # have beeen called recursively to send it different state
     def BreadthFirstTreeSearch(self):
         queue = [self.root]
         interupt_state = 20000
@@ -389,6 +398,9 @@ if len(sys.argv) > 1:
     pzzl_file = sys.argv[1]
     # parse the input file
     (num_colors, pzzl_array) = ReadInput(pzzl_file)
+    if len(sys.argv) > 2:
+        if sys.argv[1] == 'true':
+            appreciation_4_beauty = True
 else:
     print 'ERROR: you must include the file name in argument list'
     print 'EXAMPLE: "python solver.py input_p1.txt"'
@@ -433,4 +445,4 @@ else:
 
 # add the final action to the list of actions (the action that ends in final state)
 # ask TA if I can use the BFTS meathod that I did
-# ask TA if I should name my functions FINAL, ACTION, etc. 
+# ask TA if I should name my functions FINAL, ACTION, etc.

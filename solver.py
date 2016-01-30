@@ -83,31 +83,26 @@ class StateTree():
             print '='*20
             print '== PARENT =='
             Visualize(to_examine.state)
-            print '== CHILDREN =='
-            # get a list of colors in puzzle and shuffle it
-            color_numbers = range(self.num_colors)
-            random.shuffle(color_numbers)
-            # iterate through colors in puzzle, checking for actions on each
-            for color_num in color_numbers:
-                print '-- COLOR %d --' % color_num
-                # decide if any colors are connected
-                colors_connected = self.VerifyFinal(to_examine.state)
-                # ignore colors that have already found their goal state
-                if color_num in colors_connected: continue
 
-                # get the coordinates of the furthest point of the color's path
-                coord = to_examine.path_heads[color_num]
-                # retrive all valid actions from this color's path head
-                valid_actions, valid_coords = self.Actions(to_examine.state, coord)
+            # retrive all valid actions from this color's path head
+            valid_actions = self.Actions1(to_examine)
+            for color_num in valid_actions:
+                print '%d:' % color_num, DirPrint(valid_actions[color_num]['action'])
+            # iterate through colors in puzzle, checking for actions on each
+            for color_num in valid_actions:
+                # print '-- COLOR %d --' % color_num
+                color_actions = valid_actions[color_num]['action']
+                color_coords = valid_actions[color_num]['coord']
                 # create a new child state for each valid action
-                for i in xrange(len(valid_actions)):
+                for i in xrange(len(color_actions)):
                     time_before_creation = time.time()
-                    action = valid_actions[i]
-                    action_coord = valid_coords[i]
+                    action = color_actions[i]
+                    action_coord = color_coords[i]
                     self.ID += 1
                     # retulting child state from parent acted on by action
-                    c_state = self.Result(to_examine.state, coord, action)
-                    Visualize(c_state)
+                    c_state = self.Result(to_examine.state, to_examine.path_heads[color_num], action)
+                    print '* STATE CREATEED *'
+                    # Visualize(c_state)
                     # create new node
                     child = Node(ID=self.ID, parent_node=to_examine.ID, state=c_state, action=action)
                     # updated the child's path heads
@@ -128,6 +123,34 @@ class StateTree():
                     queue.append(child)
                     self.total_time_on_creation += (time.time() - time_before_creation)
 
+
+    def Actions1(self, to_examine):
+        valid_actions = {} # fill in format:
+
+        # find which colors are connected
+        colors_connected = self.VerifyFinal(to_examine.state)
+        # get a list of colors in puzzle and shuffle it
+        color_numbers = range(self.num_colors)
+        random.shuffle(color_numbers)
+        # trim down the list of numbers to colors action on
+        # if the color is already connected, no further action needed on color
+        for color in color_numbers:
+            if color in colors_connected:
+                color_numbers.remove(color)
+
+        # iterate through remaining colors, finding actions for each
+        for color in color_numbers:
+            coord = to_examine.path_heads[color]
+            color_actions = self.Actions2(to_examine.state, coord)
+            if len(color_actions['action']) == 0:
+                # color path hit a dead end, this state is dead
+                return {}
+            else:
+                valid_actions[color] = color_actions
+
+        return valid_actions
+
+
     # PURPOSE: given a state, a coordinate, and an end_position, the function
     # will return a list of all valid moves.
     # FORMAT: the 4 possible moves are: [[-1,0], [0,1], [1,0], [0,-1]]
@@ -136,7 +159,7 @@ class StateTree():
     # 2) moves onto a pre-existing line
     # 3) path moves adjacent to itself, aka, the path 'touches' itself
     # OUTPUT: returns a list of valid actions as well as the coordinates they result in
-    def Actions(self, p_state, coord):
+    def Actions2(self, p_state, coord):
         time_before_action_check = time.time()
         upper_bound = len(p_state)
         lower_bound = 0
@@ -181,7 +204,7 @@ class StateTree():
             valid_coords.append(new_coord)
 
         self.total_time_on_action += (time.time() - time_before_action_check)
-        return (valid_actions, valid_coords)
+        return {'action':valid_actions, 'coord':valid_coords}
 
     # PURPSOSE: return the result of taking action on the coordinate of the
     # given state

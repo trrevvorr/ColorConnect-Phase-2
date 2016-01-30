@@ -4,7 +4,7 @@
 # Trevor Ross
 # 01/27/2016
 # from sys import argv
-import re
+import sys
 import copy
 import random
 import time
@@ -191,8 +191,8 @@ class StateTree():
 ################################################################################
 ## FUNCTIONS
 ################################################################################
-def ReadInput(pzzl_num):
-    pzzl_file = 'input_p%s.txt' % pzzl_num
+
+def ReadInput(pzzl_file):
     f_hand = open(pzzl_file)
 
     pzzl_array = []
@@ -377,11 +377,24 @@ def Visualize(puzzle):
 ################################################################################
 ## Main
 ################################################################################
-#script, pzzl_num = argv
-random.seed()
 
-pzzl_num = 2
-(num_colors, pzzl_array) = ReadInput(pzzl_num)
+random.seed()
+appreciation_4_beauty = False
+
+# get input file name
+if len(sys.argv) > 1:
+    p_file = sys.argv[1]
+    # parse the input file
+    (num_colors, pzzl_array) = ReadInput(p_file)
+    # check for a second extra argumanet
+    if len(sys.argv) > 2:
+        if sys.argv[2] == 'true':
+            appreciation_4_beauty = True
+else:
+    print 'ERROR: you must include the file name in argument list'
+    print 'EXAMPLE: "python solver.py input_p1.txt"'
+    exit(1)
+
 print '== INITIAL PUZZLE =='
 Visualize(pzzl_array)
 PTree = StateTree(pzzl_array, num_colors)

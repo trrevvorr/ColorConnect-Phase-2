@@ -80,14 +80,14 @@ class StateTree():
 
             # dequeue the front element
             to_examine = queue.pop(0)
-            print '='*20
-            print '== PARENT =='
-            Visualize(to_examine.state)
+            # print '='*20
+            # print '== PARENT =='
+            # Visualize(to_examine.state)
 
             # retrive all valid actions from this color's path head
             valid_actions = self.Actions1(to_examine)
-            for color_num in valid_actions:
-                print '%d:' % color_num, DirPrint(valid_actions[color_num]['action'])
+            # for color_num in valid_actions:
+            #     print '%d:' % color_num, DirPrint(valid_actions[color_num]['action'])
             # iterate through colors in puzzle, checking for actions on each
             for color_num in valid_actions:
                 # print '-- COLOR %d --' % color_num
@@ -101,7 +101,6 @@ class StateTree():
                     self.ID += 1
                     # retulting child state from parent acted on by action
                     c_state = self.Result(to_examine.state, to_examine.path_heads[color_num], action)
-                    print '* STATE CREATEED *'
                     # Visualize(c_state)
                     # create new node
                     child = Node(ID=self.ID, parent_node=to_examine.ID, state=c_state, action=action)

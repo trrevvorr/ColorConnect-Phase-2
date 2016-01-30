@@ -399,7 +399,7 @@ if len(sys.argv) > 1:
     # parse the input file
     (num_colors, pzzl_array) = ReadInput(pzzl_file)
     if len(sys.argv) > 2:
-        if sys.argv[1] == 'true':
+        if sys.argv[2] == 'true':
             appreciation_4_beauty = True
 else:
     print 'ERROR: you must include the file name in argument list'

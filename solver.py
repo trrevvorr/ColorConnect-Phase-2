@@ -66,6 +66,10 @@ class StateTree():
         found_final = False
 
         while not found_final:
+            # first check if queue is empty
+            if len(queue) == 0:
+                # if so then no solution exits
+                return False
             # dequeue the front element
             to_examine = queue.pop(0)
             # Visualize(to_examine.state)
@@ -106,11 +110,8 @@ class StateTree():
                     colors_connected = self.VerifyFinal(child.state)
                     if colors_connected == True:
                         # a goal state has been found
-                        print 'GOALLLLLLLLLL!!!!!!!'
-                        print 'STATE:', child.ID
-                        Visualize(child.state)
-                        found_final = True
-                        break
+                        # return the final state and it's ancestors
+                        return (self.TraceBack(child))
                     total_time_on_final += (time.time() - time_before_final_check)
                     # push child onto queue
                     queue.append(child)
@@ -190,6 +191,17 @@ class StateTree():
         print     '  FINISHED'
 
 
+    def TraceBack(self, end_state):
+        state_path = []
+        state = end_state
+        while state.action != None:
+            state_path.insert(0, state)
+            state = self.state_dict[state.p_ID]
+        state_path.insert(0, state)
+
+        return state_path
+
+
     def StateLookup(self):
         print 'Enter Desired State ID to look up State'
         user_in = int(raw_input('>'))
@@ -220,16 +232,6 @@ def ReadInput(pzzl_file):
     return (num_colors, pzzl_array)
 
 
-def Transpose(matrix):
-    t_matrix = copy.deepcopy(matrix)
-    dem = len(matrix)
-
-    for i in xrange(dem):
-        for j in xrange(dem):
-            t_matrix[i][j] = matrix[j][i]
-    return t_matrix
-
-
 # PURPOSE: given the puzzle and the number of colors to find, function will
 # return a dict with the FIRST occurance of the number as the key and its
 # coordinates as the value
@@ -237,7 +239,7 @@ def Transpose(matrix):
 def FindColorStart(puzzle, num_colors):
     coordinates = {} # format: {0:[r0,c0], 1:[r1,c1],...} where r = row, c = col
     dim = len(puzzle)
-    color_nums = range(dim) # list of all color numbers
+    color_nums = range(num_colors) # list of all color numbers
     # find coordinate for each color start
     for row_i in xrange(dim):
         for col_i in xrange(dim):
@@ -266,7 +268,7 @@ def FindColorStart(puzzle, num_colors):
 def FindColorEnd(puzzle, num_colors):
     coordinates = {} # format: {0:[r0,c0], 1:[r1,c1],...}  where r = row, c = col
     dim = len(puzzle)
-    color_nums = range(dim) # list of all color numbers
+    color_nums = range(num_colors) # list of all color numbers
     # find coordinate for each color start
     for row_i in xrange(dim):
         for col_i in xrange(dim):
@@ -398,7 +400,7 @@ def Visualize(puzzle):
 random.seed()
 appreciation_4_beauty = False
 
-# get input file name
+## READ IN PUZZLE FROM FILE ##
 if len(sys.argv) > 1:
     p_file = sys.argv[1]
     # parse the input file
@@ -412,14 +414,30 @@ else:
     print 'EXAMPLE: "python solver.py input_p1.txt"'
     exit(1)
 
-print '== INITIAL PUZZLE =='
-Visualize(pzzl_array)
+## BUILD TREE AND BFTS FOR SOLUTION ##
 PTree = StateTree(pzzl_array, num_colors)
-PTree.BreadthFirstTreeSearch()
-print("--- %s seconds ---" % (time.time() - start_time))
+solution = PTree.BreadthFirstTreeSearch()
+
+## PRINT SOLUTION ##
+# if puzzle is impossible, say so
+if solution == False:
+    print '== NO SOLUTION POSSIBLE! =='
+# UGLY SOLUTION
+elif not appreciation_4_beauty:
+    # time in microseconds
+    print int((time.time() - start_time)*1000000)
+    # path cost of solution
+    print solution[-1].path_cost
+    # print actions and final state
+    # UglyPrint(solution, sol_actions)
+# PRETTY SOLUTION
+else:
+    for node in solution:
+        print '== STATE %d LEVEL %d ==' % (node.ID, node.path_cost)
+        Visualize(node.state)
+    print '== FINISHED IN %4.4f SECONDS ==' % (time.time() - start_time)
+
 
 
 ###################################
 ### TODO
-
-# remove all 'remove' statements as possible

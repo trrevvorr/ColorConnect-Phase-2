@@ -80,11 +80,16 @@ class StateTree():
 
             # dequeue the front element
             to_examine = queue.pop(0)
+            print '='*20
+            print '== PARENT =='
+            Visualize(to_examine.state)
+            print '== CHILDREN =='
             # get a list of colors in puzzle and shuffle it
             color_numbers = range(self.num_colors)
             random.shuffle(color_numbers)
             # iterate through colors in puzzle, checking for actions on each
             for color_num in color_numbers:
+                print '-- COLOR %d --' % color_num
                 # decide if any colors are connected
                 colors_connected = self.VerifyFinal(to_examine.state)
                 # ignore colors that have already found their goal state
@@ -94,8 +99,6 @@ class StateTree():
                 coord = to_examine.path_heads[color_num]
                 # retrive all valid actions from this color's path head
                 valid_actions, valid_coords = self.Actions(to_examine.state, coord)
-                # print '%d: VALID ACTIONS: %r' % (color_num, DirPrint(valid_actions))
-                # print 'valid extentions of %d:' % color_num, valid_coords
                 # create a new child state for each valid action
                 for i in xrange(len(valid_actions)):
                     time_before_creation = time.time()
@@ -104,6 +107,7 @@ class StateTree():
                     self.ID += 1
                     # retulting child state from parent acted on by action
                     c_state = self.Result(to_examine.state, coord, action)
+                    Visualize(c_state)
                     # create new node
                     child = Node(ID=self.ID, parent_node=to_examine.ID, state=c_state, action=action)
                     # updated the child's path heads
@@ -254,11 +258,22 @@ class StateTree():
         print 'CREATED: ', self.ID
         print 'EXPANDED:', (self.state_dict[self.ID]).p_ID
 
+    def PrintRelation(self, parent, actions):
+        print '== PARENT =='
+        Visualize(parent.state)
+
+        print '== CHILDREN =='
+        # create a new child state for each valid action
+        for i in xrange(len(actions)):
+            action = actions[i]
+            # retulting child state from parent acted on by action
+            # c_state = self.Result(parent.state, coord, action)
+            Visualize(c_state)
 
     def StateLookup(self):
         print 'Enter Desired State ID to look up State'
         user_in = int(raw_input('>'))
-        while user_in != -1:
+        while True:
             state = self.state_dict[user_in]
             print 'State ID:', state.ID, 'Parent ID:', state.p_ID
             Visualize(state.state)

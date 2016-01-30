@@ -14,6 +14,18 @@ start_time = time.time()
 ## CLASSES
 ################################################################################
 
+# for use with printing pretty colors
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
 class Node():
     """Tree node for State Tree"""
     def __init__(self, ID=None, parent_node=None, state=None, action=None):
@@ -365,14 +377,19 @@ def DirPrint(directions):
 
 
 def Visualize(puzzle):
-    print '%s%s' % (('+---' * len(puzzle)), '+') # top horizontal divider
+    colors = [bcolors.HEADER, bcolors.OKGREEN, bcolors.WARNING,
+                bcolors.FAIL, bcolors.OKBLUE]
+    # top horizontal divider
+    print '%s%s' % (('+---' * len(puzzle)), '+')
     for row in puzzle:
         print '|', # front vertical divider
         for char in row:
-            if char == 'e': print ' ', '|', # empty + vertical divider
-            else: print char, '|', # color num + vertical divider
-        print
-        print '%s%s' % (('+---' * len(row)), '+') # horizontal divider
+            # empty + vertical divider
+            if char == 'e': print ' ', '|',
+            # color num + vertical divider
+            else: print colors[int(char)%5] + char + bcolors.ENDC, '|',
+        # horizontal divider
+        print '\n%s%s' % (('+---' * len(row)), '+')
 
 ################################################################################
 ## Main

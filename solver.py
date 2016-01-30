@@ -78,7 +78,8 @@ class StateTree():
                 if self.focus_color+1 == self.num_colors:
                     # print 'FINAL GOAL:'
                     # Visualize(to_examine.state)
-                    return [to_examine]
+                    action_steps = self.TraceBack(to_examine)
+                    return [[to_examine, action_steps]]
                 # otherwise there are still more colors to connect
                 else:
                     #print 'TEMP GOAL:'
@@ -89,7 +90,8 @@ class StateTree():
                     NextSolution = NextTree.BreadthFirstTreeSearch()
                     # if the Next Solution was successful, add it to the list of successes
                     if NextSolution != False:
-                        solution_list = [to_examine]
+                        action_steps = self.TraceBack(to_examine)
+                        solution_list = [[to_examine, action_steps]]
                         solution_list = solution_list + NextSolution
                         return solution_list
                     # otherwise look for another solution to pass onto the next tree
@@ -181,6 +183,14 @@ class StateTree():
         print     '  FINISHED'
 
 
+    def TraceBack(self, end_state):
+        action_steps = []
+        state = end_state
+        while state.action != None:
+            action_steps.insert(0, [self.focus_color, state.action])
+            state = self.state_dict[state.p_ID]
+        return action_steps
+
     def StateLookup(self):
         print 'Enter Desired State ID to look up State'
         user_in = int(raw_input('>'))
@@ -262,10 +272,6 @@ def FindColorEnd(puzzle, color):
     exit(1)
 
 
-def TraceBack(search_tree, state_id):
-    pass
-
-
 def Actions(p_state, coord, end_coord):
     upper_bound = len(p_state)
     lower_bound = 0
@@ -344,8 +350,15 @@ def DirPrint(directions):
     return dir_array
 
 
-def UglyPrint(state):
-    for row in state:
+def UglyPrint(pzzl_sol, sol_actions):
+    # print actions to solution
+    for color in xrange(len(sol_actions)):
+        for action in sol_actions[color]:
+            print color, action[1][1], '%d,' % action[1][0],
+    print
+    # print final state
+    final_state = pzzl_sol[-1].state
+    for row in final_state:
         for char in row:
             print char,
         print
@@ -369,7 +382,7 @@ def Visualize(puzzle):
 ################################################################################
 #script, pzzl_num = argv
 random.seed()
-appreciation_4_beauty = True
+appreciation_4_beauty = False
 
 # get input file name
 if len(sys.argv) > 1:
@@ -384,21 +397,40 @@ else:
 
 PTree = StateTree(pzzl_array, num_colors, 0)
 pzzl_sol = PTree.BreadthFirstTreeSearch()
-
+sol_states = []
+sol_actions = []
+for item in pzzl_sol:
+    sol_states.append(item[0])
+    sol_actions.append(item[1])
 # if puzzle is impossible, say so
-if pzzl_sol == False:
+if sol_states == False:
     print '== NO SOLUTION POSSIBLE! =='
 # UGLY SOLUTION
 elif not appreciation_4_beauty:
+    # time in microseconds
     print int((time.time() - start_time)*1000000)
-    last_state = pzzl_sol[-1]
-    print last_state.path_cost
-    UglyPrint(last_state.state)
+    # path cost of solution
+    print sol_states[-1].path_cost
+    # print actions and final state
+    UglyPrint(sol_states, sol_actions)
 # PRETTY SOLUTION
 else:
     print '== INITIAL PUZZLE =='
     Visualize(pzzl_array)
-    for color_num, solution in enumerate(pzzl_sol):
+    for color_num, solution in enumerate(sol_states):
         print '== SOLVE %d ==' % color_num
         Visualize(solution.state)
+        print '-- STEPS --'
+        action_list = []
+        for step in sol_actions[color_num]:
+            action_list.append(step[1])
+        print DirPrint(action_list)
     print '== FINISHED IN %4.4f SECONDS ==' % (time.time() - start_time)
+
+
+#########################################################################
+## TODO
+
+# add the final action to the list of actions (the action that ends in final state)
+# ask TA if I can use the BFTS meathod that I did
+# ask TA if I should name my functions FINAL, ACTION, etc. 

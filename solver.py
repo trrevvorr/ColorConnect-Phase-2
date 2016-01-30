@@ -63,9 +63,9 @@ class StateTree():
         total_time_on_action = 0.0
         total_time_on_creation = 0.0
         BFTS_start_time = time.time()
-        found_final = False
 
-        while not found_final:
+        # loop until final state is found or queue is emptied
+        while True:
             # first check if queue is empty
             if len(queue) == 0:
                 # if so then no solution exits
@@ -105,48 +105,32 @@ class StateTree():
                     child.path_heads[color_num] = action_coord
                     # update child's path cost
                     child.path_cost = to_examine.path_cost + 1
+                    # add child to the dict
+                    self.state_dict[child.ID] = child
                     # check if child is Goal State
                     time_before_final_check = time.time()
                     colors_connected = self.VerifyFinal(child.state)
                     if colors_connected == True:
                         # a goal state has been found
                         # return the final state and it's ancestors
+                        print '-- TIME --'
+                        print 'TOTAL:', (time.time() - BFTS_start_time)
+                        print 'FINAL CHECK: ', total_time_on_final
+                        print 'ACTION CHECK:', total_time_on_action
+                        print 'CREATION:    ', total_time_on_creation
+                        print '-- STATES --'
+                        print 'CREATED: ', self.ID
+                        print 'EXPANDED:', to_examine.ID
                         return (self.TraceBack(child))
                     total_time_on_final += (time.time() - time_before_final_check)
                     # push child onto queue
                     queue.append(child)
-                    self.state_dict[child.ID] = child
                     total_time_on_creation += (time.time() - time_before_creation)
-                if found_final: break
-
-            if self.ID > interupt_state:
-                print '-- TIME --'
-                print 'TOTAL:', (time.time() - BFTS_start_time)
-                print "SPLIT:", (time.time() - last_interrupt)
-                print '- '*10
-                print 'FINAL CHECK: ', total_time_on_final
-                print 'ACTION CHECK:', total_time_on_action
-                print 'CREATION:    ', total_time_on_creation
-                print '-- EXAM STATE --'
-                print 'STATE:', to_examine.ID
-                print 'DEPTH:', to_examine.path_cost
-                Visualize(to_examine.state)
-                print '-- LATEST CREATION --'
-                print 'STATE:', self.ID
-                print 'DEPTH:', (self.state_dict[self.ID]).path_cost
-                Visualize((self.state_dict[self.ID]).state)
-                interupt_state+=20000
-                last_interrupt = time.time()
-            # print 'FRONTIER:',
-            # for node in queue:
-            #     print node.ID,
-            # print
-            # print 'EXAMINED:', to_examine.ID
-        # self.PrintSolution(to_examine.ID)
-        print 'STATES:', self.ID
-        # self. StateLookup()
 
 
+    # PURPOSE: verify that the passed state is a final state
+    # IF FINAL: return True
+    # IF NOT FINAL: return a list of those colors who are final
     def VerifyFinal(self, pzzl_state): # REVIEW: ask if i should name the function FINAL
         colors_connected = []
         upper_bound = len(pzzl_state)
@@ -171,24 +155,6 @@ class StateTree():
             return True
         else:
             return colors_connected
-
-
-
-    def PrintSolution(self, solution_ID):
-        print '\n\n=== SOLUTION ==='
-        node = self.state_dict[solution_ID]
-        solution = [node.state]
-
-        while node.p_ID != None:
-            node_ID = node.p_ID
-            node = self.state_dict[node_ID]
-            solution.insert(0, node.state)
-
-        for state in solution:
-            Visualize(state)
-            print '      |'
-            print '      V'
-        print     '  FINISHED'
 
 
     def TraceBack(self, end_state):
@@ -294,11 +260,14 @@ def FindColorEnd(puzzle, num_colors):
 
     return coordinates
 
-
-def TraceBack(search_tree, state_id):
-    pass
-
-
+# PURPOSE: given a state, a coordinate, and an end_position, the function
+# will return a list of all valid moves.
+# FORMAT: the 4 possible moves are: [[-1,0], [0,1], [1,0], [0,-1]]
+# VALID MOVE DISQUALIFICATION:
+# 1) moves out of puzzle's bounds
+# 2) moves onto a pre-existing line
+# 3) path moves adjacent to itself, aka, the path 'touches' itself
+# OUTPUT: returns a list of valid actions as well as the coordinates they result in
 def Actions(p_state, coord, end_positions):
     upper_bound = len(p_state)
     lower_bound = 0

@@ -55,8 +55,8 @@ class StateTree():
         self.root.path_heads = self.color_start
         self.color_end = FindColorEnd(self.root.state, self.num_colors)
         self.root.path_cost = 0
-        # dictionary of states indexed by their ID
-        self.state_dict = {self.root.ID:self.root}
+        # dictionary of nodes indexed by their ID
+        self.node_dict = {self.root.ID:self.root}
 
         # TIMING VARIABLES
         self.total_time_on_final = 0.0
@@ -72,13 +72,15 @@ class StateTree():
     # OUTPUT: either False or list of states leading to solution
     def BreadthFirstTreeSearch(self):
         self.BFTS_start_time = time.time()
+        # queue will store the ID of the node, to get the node, look up the
+        # ID in the node_dict
         queue = Queue()
-        queue.put(self.root)
+        queue.put(self.root.ID)
 
         # loop until final state is found or queue is emptied
         while not queue.empty():
             # dequeue the front element
-            to_examine = queue.get()
+            to_examine = self.node_dict[queue.get()]
             # print '='*20
             # print '== PARENT =='
             # Visualize(to_examine.state)
@@ -110,7 +112,7 @@ class StateTree():
                     # update child's path cost
                     child.path_cost = to_examine.path_cost + 1
                     # add child to the dict
-                    self.state_dict[child.ID] = child
+                    self.node_dict[child.ID] = child
                     # check if child is Goal State
                     colors_connected = self.VerifyFinal(child.state)
                     if colors_connected == True:
@@ -119,7 +121,7 @@ class StateTree():
                         # self.EndSequence(True)
                         return (self.TraceBack(child))
                     # push child onto queue
-                    queue.put(child)
+                    queue.put(child.ID)
                     self.total_time_on_creation += (time.time() - time_before_creation)
         # queue is empty if loop breaks
         # self.EndSequence(False)
@@ -276,7 +278,7 @@ class StateTree():
             # insert in front of list since traversal is bottom-up
             node_path.insert(0, node)
             # move to partent node
-            node = self.state_dict[node.p_ID]
+            node = self.node_dict[node.p_ID]
         # add the root
         node_path.insert(0, node)
         return node_path
@@ -291,7 +293,7 @@ class StateTree():
         print 'CREATION:    ', self.total_time_on_creation
         print '-- STATES --'
         print 'CREATED: ', self.ID
-        print 'EXPANDED:', (self.state_dict[self.ID]).p_ID
+        print 'EXPANDED:', (self.node_dict[self.ID]).p_ID
 
     # PURPOSE: allows user to enter a state's ID and see the state
     # LOOP: loops infinatly until user enters anything but a number
@@ -299,7 +301,7 @@ class StateTree():
         print 'Enter Desired State ID to look up State'
         user_in = int(raw_input('>'))
         while True:
-            state = self.state_dict[user_in]
+            state = self.node_dict[user_in]
             print 'State ID:', state.ID, 'Parent ID:', state.p_ID
             Visualize(state.state)
             user_in = int(raw_input('>'))

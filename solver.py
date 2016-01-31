@@ -6,6 +6,7 @@
 # from sys import argv
 import sys
 import copy
+from Queue import Queue
 import random
 import time
 start_time = time.time()
@@ -54,8 +55,8 @@ class StateTree():
         self.root.path_heads = self.color_start
         self.color_end = FindColorEnd(self.root.state, self.num_colors)
         self.root.path_cost = 0
-        # dictionary of states indexed by their ID
-        self.state_dict = {self.root.ID:self.root}
+        # dictionary of nodes indexed by their ID
+        self.node_dict = {self.root.ID:self.root}
 
         # TIMING VARIABLES
         self.total_time_on_final = 0.0
@@ -71,27 +72,27 @@ class StateTree():
     # OUTPUT: either False or list of states leading to solution
     def BreadthFirstTreeSearch(self):
         self.BFTS_start_time = time.time()
-        queue = [self.root]
+        # queue will store the ID of the node, to get the node, look up the
+        # ID in the node_dict
+        queue = Queue()
+        queue.put(self.root.ID)
 
         # loop until final state is found or queue is emptied
-        while True:
-            # If queue is empty, no solution exits
-            if len(queue) == 0:
-                # self.EndSequence(False)
-                return False
-
+        while not queue.empty():
             # dequeue the front element
-            to_examine = queue.pop(0)
+            to_examine = self.node_dict[queue.get()]
             # print '='*20
             # print '== PARENT =='
             # Visualize(to_examine.state)
 
             # retrive all valid actions from this color's path head
             valid_actions = self.Action(to_examine)
+            valid_colors = valid_actions.keys()
+            random.shuffle(valid_colors)
             # for color_num in valid_actions:
             #     print '%d:' % color_num, DirPrint(valid_actions[color_num]['action'])
             # iterate through colors in puzzle, checking for actions on each
-            for color_num in valid_actions:
+            for color_num in valid_colors:
                 # print '-- COLOR %d --' % color_num
                 color_actions = valid_actions[color_num]['action']
                 color_coords = valid_actions[color_num]['coord']
@@ -113,7 +114,7 @@ class StateTree():
                     # update child's path cost
                     child.path_cost = to_examine.path_cost + 1
                     # add child to the dict
-                    self.state_dict[child.ID] = child
+                    self.node_dict[child.ID] = child
                     # check if child is Goal State
                     colors_connected = self.VerifyFinal(child.state)
                     if colors_connected == True:
@@ -122,8 +123,11 @@ class StateTree():
                         # self.EndSequence(True)
                         return (self.TraceBack(child))
                     # push child onto queue
-                    queue.append(child)
+                    queue.put(child.ID)
                     self.total_time_on_creation += (time.time() - time_before_creation)
+        # queue is empty if loop breaks
+        # self.EndSequence(False)
+        return False
 
     # PURPOSE: give a node, return a list of valid actions
     # VALID MOVE DISQUALIFICATION: if one of the colors hits a dead end
@@ -136,7 +140,6 @@ class StateTree():
         colors_connected = self.VerifyFinal(to_examine.state)
         # get a list of colors in puzzle and shuffle it
         color_numbers = range(self.num_colors)
-        random.shuffle(color_numbers)
         # trim down the list of numbers to colors action on
         # if the color is already connected, no further action needed on color
         for color in color_numbers:
@@ -144,6 +147,7 @@ class StateTree():
                 color_numbers.remove(color)
 
         # iterate through remaining colors, finding actions for each
+        random.shuffle(color_numbers)
         for color in color_numbers:
             coord = to_examine.path_heads[color]
             color_actions = self.ActionOnCoord(to_examine.state, coord)
@@ -276,7 +280,7 @@ class StateTree():
             # insert in front of list since traversal is bottom-up
             node_path.insert(0, node)
             # move to partent node
-            node = self.state_dict[node.p_ID]
+            node = self.node_dict[node.p_ID]
         # add the root
         node_path.insert(0, node)
         return node_path
@@ -291,7 +295,7 @@ class StateTree():
         print 'CREATION:    ', self.total_time_on_creation
         print '-- STATES --'
         print 'CREATED: ', self.ID
-        print 'EXPANDED:', (self.state_dict[self.ID]).p_ID
+        print 'EXPANDED:', (self.node_dict[self.ID]).p_ID
 
     # PURPOSE: allows user to enter a state's ID and see the state
     # LOOP: loops infinatly until user enters anything but a number
@@ -299,7 +303,7 @@ class StateTree():
         print 'Enter Desired State ID to look up State'
         user_in = int(raw_input('>'))
         while True:
-            state = self.state_dict[user_in]
+            state = self.node_dict[user_in]
             print 'State ID:', state.ID, 'Parent ID:', state.p_ID
             Visualize(state.state)
             user_in = int(raw_input('>'))

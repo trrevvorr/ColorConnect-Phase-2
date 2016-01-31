@@ -16,7 +16,7 @@
 `1  e  e  0`  
 
 #### Output 2
-If you instead compile with `python solver.py input_p1.txt true`, the output will look something like this:  
+If you instead compile with `python solver.py input_p1.txt pretty`, the output will look something like this:  
 ![Pretty Output](http://snappyimages.nextwavesrl.netdna-cdn.com/img/b7def6c1b375dbd2fa78d9af5fd8fc8a.png)
 
 ## Puzzle Details

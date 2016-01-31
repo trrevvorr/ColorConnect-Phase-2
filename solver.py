@@ -1,3 +1,4 @@
+"""Solves Color Connect Puzzle as per AI Puzzle 1 requirement"""
 # AI - CS 5400 - Sec 1A
 # Puzzle Assignmet 1 - Phase 1
 #
@@ -47,7 +48,7 @@ class StateTree(object):
         self.node_dict = {self.root.ID:self.root}
 
         # TIMING VARIABLE
-        self.BFTS_run_time = time.time()
+        self.run_time = time.time()
 
     # PURPOSE: finds optimal solution to puzzle by using breadth first search
     # Each state is first enqued, in a FIFO queue. Later, the element will be
@@ -55,7 +56,7 @@ class StateTree(object):
     # a child state will be created and enqueued for each one.
     # OUTPUT: either False or list of states leading to solution
     def BreadthFirstTreeSearch(self):
-        self.BFTS_run_time = time.time()
+        self.run_time = time.time()
         # queue will store the ID of the node, to get the node, look up the
         # ID in the node_dict
         queue = Queue()
@@ -103,12 +104,12 @@ class StateTree(object):
                     if colors_connected == True:
                         # a goal state has been found
                         # return the final state and it's ancestors
-                        self.BFTS_run_time = time.time() - self.BFTS_run_time
-                        return (self.TraceBack(child))
+                        self.run_time = time.time() - self.run_time
+                        return self.TraceBack(child)
                     # push child onto queue
                     queue.put(child.ID)
         # queue is empty if loop breaks
-        self.BFTS_run_time = time.time() - self.BFTS_run_time
+        self.run_time = time.time() - self.run_time
         return False
 
 
@@ -391,7 +392,6 @@ def DirPrint(directions):
 # INPUT: list of nodes from root to final for solution path and number of colors
 # OUTPUT: action format: color col_moved_to row_moved_to, color col_moved_to etc.
 def UglyPrint(sol_nodes, num_colors):
-    colors_connected = []
     root_state = sol_nodes[0].state
     final_state = sol_nodes[-1].state
 
@@ -455,7 +455,7 @@ if len(sys.argv) > 1:
     (num_colors, pzzl_array) = ReadInput(p_file)
     # check for a second extra argumanet
     if len(sys.argv) > 2:
-        if sys.argv[2] == 'true':
+        if sys.argv[2] == 'pretty':
             appreciation_4_beauty = True
 else:
     print 'ERROR: you must include the file name in argument list'
@@ -473,7 +473,7 @@ if solution == False:
 # UGLY SOLUTION
 elif not appreciation_4_beauty:
     # time in microseconds
-    print int(PTree.BFTS_run_time * 1000000)
+    print int(PTree.run_time * 1000000)
     # path cost of solution
     print solution[-1].path_cost + num_colors
     # print actions and final state
@@ -483,7 +483,7 @@ else:
     for node in solution:
         print '== STATE %d LEVEL %d ==' % (node.ID, node.path_cost)
         Visualize(node.state)
-    print '== FINISHED IN %4.4f SECONDS ==' % PTree.BFTS_run_time
+    print '== FINISHED IN %4.4f SECONDS ==' % PTree.run_time
 
 
 

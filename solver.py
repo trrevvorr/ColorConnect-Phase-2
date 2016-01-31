@@ -9,22 +9,10 @@ import copy
 from Queue import Queue
 import random
 import time
-start_time = time.time()
 
 ################################################################################
 ## CLASSES
 ################################################################################
-
-# for use with printing pretty colors
-class bcolors(object):
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
 
 
 class Node(object):
@@ -58,12 +46,8 @@ class StateTree(object):
         # dictionary of nodes indexed by their ID
         self.node_dict = {self.root.ID:self.root}
 
-        # TIMING VARIABLES
-        self.total_time_on_final = 0.0
-        self.total_time_on_action = 0.0
-        self.total_time_on_creation = 0.0
-        self.total_time_on_result = 0.0
-        self.BFTS_start_time = time.time()
+        # TIMING VARIABLE
+        self.BFTS_run_time = time.time()
 
     # PURPOSE: finds optimal solution to puzzle by using breadth first search
     # Each state is first enqued, in a FIFO queue. Later, the element will be
@@ -71,7 +55,7 @@ class StateTree(object):
     # a child state will be created and enqueued for each one.
     # OUTPUT: either False or list of states leading to solution
     def BreadthFirstTreeSearch(self):
-        self.BFTS_start_time = time.time()
+        self.BFTS_run_time = time.time()
         # queue will store the ID of the node, to get the node, look up the
         # ID in the node_dict
         queue = Queue()
@@ -102,7 +86,7 @@ class StateTree(object):
                     action_coord = color_coords[i]
                     self.ID += 1
                     # retulting child state from parent acted on by action
-                    c_state = self.Result(to_examine.state, to_examine.path_heads[color_num], action)
+                    c_state = Result(to_examine.state, to_examine.path_heads[color_num], action)
                     # Visualize(c_state)
                     # create new node
                     action_coord.insert(0, color_num)
@@ -119,12 +103,12 @@ class StateTree(object):
                     if colors_connected == True:
                         # a goal state has been found
                         # return the final state and it's ancestors
-                        # self.EndSequence(True)
+                        self.BFTS_run_time = time.time() - self.BFTS_run_time
                         return (self.TraceBack(child))
                     # push child onto queue
                     queue.put(child.ID)
         # queue is empty if loop breaks
-        # self.EndSequence(False)
+        self.BFTS_run_time = time.time() - self.BFTS_run_time
         return False
 
 
@@ -149,7 +133,7 @@ class StateTree(object):
         random.shuffle(color_numbers)
         for color in color_numbers:
             coord = to_examine.path_heads[color]
-            color_actions = self.ActionOnCoord(to_examine.state, coord)
+            color_actions = self.ActionOnCoord(to_examine.state, coord, color)
             if len(color_actions['action']) == 0:
                 # color path hit a dead end, this state is dead
                 return {}
@@ -170,10 +154,7 @@ class StateTree(object):
     # FORMAT: the 4 possible moves are: [[-1,0], [0,1], [1,0], [0,-1]]
     # Function returns a dict with 'action' being the key to the list of
     # valid actions. 'coord' is the key for valid coordinates
-    def ActionOnCoord(self, p_state, coord):
-        upper_bound = len(p_state)
-        lower_bound = 0
-        color =  int(p_state[coord[0]][coord[1]])
+    def ActionOnCoord(self, p_state, coord, color):
         end_coord = self.color_end[color]
         valid_actions = []
         valid_coords = []
@@ -185,9 +166,7 @@ class StateTree(object):
             new_row = coord[0]+action[0]
             new_col = coord[1]+action[1]
             # check if move is out-of-bounds
-            if new_col < lower_bound or new_col == upper_bound:
-                continue
-            if new_row < lower_bound or new_row == upper_bound:
+            if OutOfBounds([new_row, new_col], len(p_state)):
                 continue
             # check if space is already occupied
             if p_state[new_row][new_col] != 'e':
@@ -198,9 +177,7 @@ class StateTree(object):
                 adj_row = new_row+adj[0]
                 adj_col = new_col+adj[1]
                 # check if adjacent square is out-of-bounds
-                if adj_col < lower_bound or adj_col == upper_bound:
-                    continue
-                if adj_row < lower_bound or adj_row == upper_bound:
+                if OutOfBounds([adj_row, adj_col], len(p_state)):
                     continue
                 if p_state[adj_row][adj_col] == str(color):
                     if [adj_row, adj_col] != end_coord:
@@ -215,28 +192,11 @@ class StateTree(object):
 
         return {'action':valid_actions, 'coord':valid_coords}
 
-    # PURPSOSE: return the result of taking action on the coordinate of the
-    # given state
-    # OUTPUT: returns state in the form: [[... row 1 ...], [... row 2 ...], ...]
-    def Result(self, p_state, coord, action):
-        new_state = copy.deepcopy(p_state)
-        # retrieve the 'color' of the path to be extended
-        color_path_to_extend = p_state[coord[0]][coord[1]]
-        # find the location to place the extention
-        new_row = coord[0]+action[0]
-        new_col = coord[1]+action[1]
-        # 'color' the new loaction, extending the line
-        new_state[new_row][new_col] = color_path_to_extend
-
-        return new_state
-
     # PURPOSE: verify that the passed state is a final state
     # IF FINAL: return True
     # IF NOT FINAL: return a list of those colors who are final
     def VerifyFinal(self, pzzl_state):
         colors_connected = []
-        upper_bound = len(pzzl_state)
-        lower_bound = 0
 
         for color in self.color_end:
             # find the end point coordinats for color
@@ -246,11 +206,8 @@ class StateTree(object):
                 adj_row = end[0]+direction[0]
                 adj_col = end[1]+direction[1]
                 # ignore if out-of-bounds
-                if adj_col < lower_bound or adj_col == upper_bound:
+                if OutOfBounds([adj_row, adj_col], len(pzzl_state)):
                     continue
-                if adj_row < lower_bound or adj_row == upper_bound:
-                    continue
-
                 if pzzl_state[adj_row][adj_col] == str(color):
                     # color has been connected
                     colors_connected.append(color)
@@ -277,14 +234,6 @@ class StateTree(object):
         # add the root
         node_path.insert(0, node)
         return node_path
-
-    # PURPOSE: print out time and states statistics so program can be analized
-    def EndSequence (self, sol_found):
-        print '-- TIME --'
-        print 'TOTAL:       ', (time.time() - self.BFTS_start_time)
-        print '-- STATES --'
-        print 'CREATED: ', self.ID
-        print 'EXPANDED:', (self.node_dict[self.ID]).p_ID
 
     # PURPOSE: allows user to enter a state's ID and see the state
     # LOOP: loops infinatly until user enters anything but a number
@@ -320,6 +269,20 @@ def ReadInput(pzzl_file):
 
     f_hand.close()
     return (num_colors, pzzl_array)
+
+# PURPOSE: returns true if coordinats are out of bounds of the puzzle
+# returs false otherwise
+def OutOfBounds(coord, puzzle_dim):
+    new_row, new_col = coord
+    LOWER_BOUND = 0
+    UPPER_BOUND = puzzle_dim
+
+    if new_col < LOWER_BOUND or new_col >= UPPER_BOUND:
+        return True
+    if new_row < LOWER_BOUND or new_row >= UPPER_BOUND:
+        return True
+
+    return False
 
 
 # PURPOSE: given the puzzle and the number of colors to find, function will
@@ -386,6 +349,21 @@ def FindColorEnd(puzzle, num_colors):
 
     return coordinates
 
+# PURPSOSE: return the result of taking action on the coordinate of the
+# given state
+# OUTPUT: returns state in the form: [[... row 1 ...], [... row 2 ...], ...]
+def Result(p_state, coord, action):
+    new_state = copy.deepcopy(p_state)
+    # retrieve the 'color' of the path to be extended
+    color_path_to_extend = p_state[coord[0]][coord[1]]
+    # find the location to place the extention
+    new_row = coord[0]+action[0]
+    new_col = coord[1]+action[1]
+    # 'color' the new loaction, extending the line
+    new_state[new_row][new_col] = color_path_to_extend
+
+    return new_state
+
 # PURPOSE: given a list of action coordinates, it will translate them into
 # plain english ['right', 'up', 'down', or 'right']
 def DirPrint(directions):
@@ -416,8 +394,6 @@ def UglyPrint(sol_nodes, num_colors):
     colors_connected = []
     root_state = sol_nodes[0].state
     final_state = sol_nodes[-1].state
-    upper_bound = len(final_state)
-    lower_bound = 0
 
     # find all actions stored by states
     actions = []
@@ -451,8 +427,8 @@ def UglyPrint(sol_nodes, num_colors):
 # INPUT: accepts square matricies in the form of a 2D array only
 def Visualize(puzzle):
     # pretty colors
-    colors = [bcolors.HEADER, bcolors.OKGREEN, bcolors.WARNING,
-                bcolors.FAIL, bcolors.OKBLUE]
+    colors = ['\033[95m', '\033[92m', '\033[93m', '\033[91m', '\033[94m']
+    ENDC = '\033[0m'
     # top horizontal divider
     print '%s%s' % (('+---' * len(puzzle)), '+')
     for row in puzzle:
@@ -461,7 +437,7 @@ def Visualize(puzzle):
             # empty + vertical divider
             if char == 'e': print ' ', '|',
             # color num + vertical divider
-            else: print colors[int(char)%5] + char + bcolors.ENDC, '|',
+            else: print colors[int(char)%5] + char + ENDC, '|',
         # horizontal divider
         print '\n%s%s' % (('+---' * len(row)), '+')
 
@@ -497,7 +473,7 @@ if solution == False:
 # UGLY SOLUTION
 elif not appreciation_4_beauty:
     # time in microseconds
-    print int((time.time() - start_time)*1000000)
+    print int(PTree.BFTS_run_time * 1000000)
     # path cost of solution
     print solution[-1].path_cost + num_colors
     # print actions and final state
@@ -507,7 +483,7 @@ else:
     for node in solution:
         print '== STATE %d LEVEL %d ==' % (node.ID, node.path_cost)
         Visualize(node.state)
-    print '== FINISHED IN %4.4f SECONDS ==' % (time.time() - start_time)
+    print '== FINISHED IN %4.4f SECONDS ==' % PTree.BFTS_run_time
 
 
 
@@ -516,3 +492,4 @@ else:
 
 # finish the UGLY PRINT option
 # remove unnessisary functions
+# Curently 495 lines, make it fewer

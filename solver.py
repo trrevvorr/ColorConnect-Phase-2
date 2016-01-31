@@ -3,7 +3,7 @@
 #
 # Trevor Ross
 # 01/27/2016
-# from sys import argv
+
 import sys
 import copy
 from Queue import Queue
@@ -16,7 +16,7 @@ start_time = time.time()
 ################################################################################
 
 # for use with printing pretty colors
-class bcolors:
+class bcolors(object):
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
     OKGREEN = '\033[92m'
@@ -27,7 +27,7 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 
-class Node():
+class Node(object):
     """Tree node for State Tree"""
     def __init__(self, ID=None, parent_node=None, state=None, action=None):
         self.ID = ID # integer
@@ -42,7 +42,7 @@ class Node():
         # has travled in the current state. format: {0:[r0,c0], 1:[r1,c1], ...}
 
 
-class StateTree():
+class StateTree(object):
     """Creates a State Tree for all possible states of Puzzle"""
     def __init__(self, initial_puzzle, number_of_colors):
         # a globla ID index for creating unique node IDs
@@ -98,7 +98,6 @@ class StateTree():
                 color_coords = valid_actions[color_num]['coord']
                 # create a new child state for each valid action
                 for i in xrange(len(color_actions)):
-                    time_before_creation = time.time()
                     action = color_actions[i]
                     action_coord = color_coords[i]
                     self.ID += 1
@@ -124,10 +123,10 @@ class StateTree():
                         return (self.TraceBack(child))
                     # push child onto queue
                     queue.put(child.ID)
-                    self.total_time_on_creation += (time.time() - time_before_creation)
         # queue is empty if loop breaks
         # self.EndSequence(False)
         return False
+
 
     # PURPOSE: give a node, return a list of valid actions
     # VALID MOVE DISQUALIFICATION: if one of the colors hits a dead end
@@ -172,7 +171,6 @@ class StateTree():
     # Function returns a dict with 'action' being the key to the list of
     # valid actions. 'coord' is the key for valid coordinates
     def ActionOnCoord(self, p_state, coord):
-        time_before_action_check = time.time()
         upper_bound = len(p_state)
         lower_bound = 0
         color =  int(p_state[coord[0]][coord[1]])
@@ -215,14 +213,12 @@ class StateTree():
             valid_actions.append(action)
             valid_coords.append(new_coord)
 
-        self.total_time_on_action += (time.time() - time_before_action_check)
         return {'action':valid_actions, 'coord':valid_coords}
 
     # PURPSOSE: return the result of taking action on the coordinate of the
     # given state
     # OUTPUT: returns state in the form: [[... row 1 ...], [... row 2 ...], ...]
     def Result(self, p_state, coord, action):
-        time_before_result = time.time()
         new_state = copy.deepcopy(p_state)
         # retrieve the 'color' of the path to be extended
         color_path_to_extend = p_state[coord[0]][coord[1]]
@@ -232,14 +228,12 @@ class StateTree():
         # 'color' the new loaction, extending the line
         new_state[new_row][new_col] = color_path_to_extend
 
-        self.total_time_on_result += (time.time() - time_before_result)
         return new_state
 
     # PURPOSE: verify that the passed state is a final state
     # IF FINAL: return True
     # IF NOT FINAL: return a list of those colors who are final
     def VerifyFinal(self, pzzl_state):
-        time_before_final_check = time.time()
         colors_connected = []
         upper_bound = len(pzzl_state)
         lower_bound = 0
@@ -262,7 +256,6 @@ class StateTree():
                     colors_connected.append(color)
                     break
 
-        self.total_time_on_final += (time.time() - time_before_final_check)
         if len(colors_connected) == self.num_colors:
             # if all colors are connected, return true
             return True
@@ -289,10 +282,6 @@ class StateTree():
     def EndSequence (self, sol_found):
         print '-- TIME --'
         print 'TOTAL:       ', (time.time() - self.BFTS_start_time)
-        print 'FINAL CHECK: ', self.total_time_on_final
-        print 'ACTION CHECK:', self.total_time_on_action
-        print 'RESULT:      ', self.total_time_on_result
-        print 'CREATION:    ', self.total_time_on_creation
         print '-- STATES --'
         print 'CREATED: ', self.ID
         print 'EXPANDED:', (self.node_dict[self.ID]).p_ID

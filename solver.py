@@ -391,9 +391,15 @@ def DirPrint(directions):
 # PURPOSE: prints out action sequence and final array
 # INPUT: list of nodes from root to final for solution path and number of colors
 # OUTPUT: action format: color col_moved_to row_moved_to, color col_moved_to etc.
-def UglyPrint(sol_nodes, num_colors):
+def UglyPrint(PTree, sol_nodes, num_colors):
     root_state = sol_nodes[0].state
     final_state = sol_nodes[-1].state
+
+    # time in microseconds
+    print int(PTree.run_time * 1000000)
+    # path cost of solution
+    print sol_nodes[-1].path_cost + num_colors
+    # print actions and final state
 
     # find all actions stored by states
     actions = []
@@ -444,47 +450,45 @@ def Visualize(puzzle):
 ################################################################################
 ## Main
 ################################################################################
+def main():
+    random.seed()
+    appreciation_4_beauty = False
 
-random.seed()
-appreciation_4_beauty = False
+    ## READ IN PUZZLE FROM FILE ##
+    if len(sys.argv) > 1:
+        p_file = sys.argv[1]
+        # parse the input file
+        (num_colors, pzzl_array) = ReadInput(p_file)
+        # check for a second extra argumanet
+        if len(sys.argv) > 2:
+            if sys.argv[2] == 'pretty':
+                appreciation_4_beauty = True
+    else:
+        print 'ERROR: you must include the file name in argument list'
+        print 'EXAMPLE: "python solver.py input_p1.txt"'
+        exit(1)
 
-## READ IN PUZZLE FROM FILE ##
-if len(sys.argv) > 1:
-    p_file = sys.argv[1]
-    # parse the input file
-    (num_colors, pzzl_array) = ReadInput(p_file)
-    # check for a second extra argumanet
-    if len(sys.argv) > 2:
-        if sys.argv[2] == 'pretty':
-            appreciation_4_beauty = True
-else:
-    print 'ERROR: you must include the file name in argument list'
-    print 'EXAMPLE: "python solver.py input_p1.txt"'
-    exit(1)
+    ## BUILD TREE AND BFTS FOR SOLUTION ##
+    PTree = StateTree(pzzl_array, num_colors)
+    solution = PTree.BreadthFirstTreeSearch()
 
-## BUILD TREE AND BFTS FOR SOLUTION ##
-PTree = StateTree(pzzl_array, num_colors)
-solution = PTree.BreadthFirstTreeSearch()
+    ## PRINT SOLUTION ##
+    # if puzzle is impossible, say so
+    if solution == False:
+        print '== NO SOLUTION POSSIBLE! =='
+    # UGLY SOLUTION
+    elif not appreciation_4_beauty:
+        UglyPrint(PTree, solution, num_colors)
+    # PRETTY SOLUTION
+    else:
+        for node in solution:
+            print '== STATE %d LEVEL %d ==' % (node.ID, node.path_cost)
+            Visualize(node.state)
+        print '== FINISHED IN %4.4f SECONDS ==' % PTree.run_time
 
-## PRINT SOLUTION ##
-# if puzzle is impossible, say so
-if solution == False:
-    print '== NO SOLUTION POSSIBLE! =='
-# UGLY SOLUTION
-elif not appreciation_4_beauty:
-    # time in microseconds
-    print int(PTree.run_time * 1000000)
-    # path cost of solution
-    print solution[-1].path_cost + num_colors
-    # print actions and final state
-    UglyPrint(solution, num_colors)
-# PRETTY SOLUTION
-else:
-    for node in solution:
-        print '== STATE %d LEVEL %d ==' % (node.ID, node.path_cost)
-        Visualize(node.state)
-    print '== FINISHED IN %4.4f SECONDS ==' % PTree.run_time
 
+if __name__ == "__main__":
+    main()
 
 
 ###################################

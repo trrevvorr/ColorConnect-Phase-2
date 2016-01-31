@@ -6,6 +6,7 @@
 # from sys import argv
 import sys
 import copy
+from Queue import Queue
 import random
 import time
 start_time = time.time()
@@ -71,17 +72,13 @@ class StateTree():
     # OUTPUT: either False or list of states leading to solution
     def BreadthFirstTreeSearch(self):
         self.BFTS_start_time = time.time()
-        queue = [self.root]
+        queue = Queue()
+        queue.put(self.root)
 
         # loop until final state is found or queue is emptied
-        while True:
-            # If queue is empty, no solution exits
-            if len(queue) == 0:
-                # self.EndSequence(False)
-                return False
-
+        while not queue.empty():
             # dequeue the front element
-            to_examine = queue.pop(0)
+            to_examine = queue.get()
             # print '='*20
             # print '== PARENT =='
             # Visualize(to_examine.state)
@@ -122,8 +119,11 @@ class StateTree():
                         # self.EndSequence(True)
                         return (self.TraceBack(child))
                     # push child onto queue
-                    queue.append(child)
+                    queue.put(child)
                     self.total_time_on_creation += (time.time() - time_before_creation)
+        # queue is empty if loop breaks
+        # self.EndSequence(False)
+        return False
 
     # PURPOSE: give a node, return a list of valid actions
     # VALID MOVE DISQUALIFICATION: if one of the colors hits a dead end

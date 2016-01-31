@@ -4,7 +4,12 @@
 # for i in l:
 #     print l[i]
 
-import time
-start_time = time.time()
-print 'Hello World'
-print '== FINISHED IN %4.4f MILLISECONDS ==' % ((time.time() - start_time)*1000000)
+from Queue import Queue
+
+q = Queue()
+
+q.put(1)
+q.put(2)
+
+while not q.empty():
+    print q.get()

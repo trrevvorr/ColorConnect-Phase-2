@@ -32,7 +32,9 @@ class Node():
         self.ID = ID # integer
         self.p_ID = parent_node # integer
         self.state = state # format: [[... row 1 ...], [... row 2 ...], ...]
-        self.action = action # format: [x, y] where x and y are in [-1, 0, 1]
+        self.action = action # format: [c, x, y]
+        # where x and y are in [-1, 0, 1] and x is the row move, y is the
+        # col move, and c is the color
         self.path_cost = None # integer (depth of state in tree)
 
         self.path_heads = {} # dictionary containing the furthes a color path
@@ -75,44 +77,39 @@ class StateTree():
         while True:
             # If queue is empty, no solution exits
             if len(queue) == 0:
-                self.EndSequence(False)
+                # self.EndSequence(False)
                 return False
 
             # dequeue the front element
             to_examine = queue.pop(0)
-            print '='*20
-            print '== PARENT =='
-            Visualize(to_examine.state)
-            print '== CHILDREN =='
-            # get a list of colors in puzzle and shuffle it
-            color_numbers = range(self.num_colors)
-            random.shuffle(color_numbers)
-            # iterate through colors in puzzle, checking for actions on each
-            for color_num in color_numbers:
-                print '-- COLOR %d --' % color_num
-                # decide if any colors are connected
-                colors_connected = self.VerifyFinal(to_examine.state)
-                # ignore colors that have already found their goal state
-                if color_num in colors_connected: continue
+            # print '='*20
+            # print '== PARENT =='
+            # Visualize(to_examine.state)
 
-                # get the coordinates of the furthest point of the color's path
-                coord = to_examine.path_heads[color_num]
-                # retrive all valid actions from this color's path head
-                valid_actions, valid_coords = self.Actions(to_examine.state, coord)
+            # retrive all valid actions from this color's path head
+            valid_actions = self.Action(to_examine)
+            # for color_num in valid_actions:
+            #     print '%d:' % color_num, DirPrint(valid_actions[color_num]['action'])
+            # iterate through colors in puzzle, checking for actions on each
+            for color_num in valid_actions:
+                # print '-- COLOR %d --' % color_num
+                color_actions = valid_actions[color_num]['action']
+                color_coords = valid_actions[color_num]['coord']
                 # create a new child state for each valid action
-                for i in xrange(len(valid_actions)):
+                for i in xrange(len(color_actions)):
                     time_before_creation = time.time()
-                    action = valid_actions[i]
-                    action_coord = valid_coords[i]
+                    action = color_actions[i]
+                    action_coord = color_coords[i]
                     self.ID += 1
                     # retulting child state from parent acted on by action
-                    c_state = self.Result(to_examine.state, coord, action)
-                    Visualize(c_state)
+                    c_state = self.Result(to_examine.state, to_examine.path_heads[color_num], action)
+                    # Visualize(c_state)
                     # create new node
-                    child = Node(ID=self.ID, parent_node=to_examine.ID, state=c_state, action=action)
+                    action_coord.insert(0, color_num)
+                    child = Node(ID=self.ID, parent_node=to_examine.ID, state=c_state, action=action_coord)
                     # updated the child's path heads
                     child.path_heads = to_examine.path_heads.copy()
-                    child.path_heads[color_num] = action_coord
+                    child.path_heads[color_num] = action_coord[1:]
                     # update child's path cost
                     child.path_cost = to_examine.path_cost + 1
                     # add child to the dict
@@ -122,21 +119,55 @@ class StateTree():
                     if colors_connected == True:
                         # a goal state has been found
                         # return the final state and it's ancestors
-                        self.EndSequence(True)
+                        # self.EndSequence(True)
                         return (self.TraceBack(child))
                     # push child onto queue
                     queue.append(child)
                     self.total_time_on_creation += (time.time() - time_before_creation)
 
+    # PURPOSE: give a node, return a list of valid actions
+    # VALID MOVE DISQUALIFICATION: if one of the colors hits a dead end
+    # A.K.A. it has no valid moves, no valid moves will be returned for any color
+    # OUTPUT: dictionary with color nums as keys and their valid outputs
+    def Action(self, to_examine):
+        valid_actions = {} # format: {0:{action:[[0,1],...], 'coord':[[2,3],...]},...}
+
+        # find which colors are already connected
+        colors_connected = self.VerifyFinal(to_examine.state)
+        # get a list of colors in puzzle and shuffle it
+        color_numbers = range(self.num_colors)
+        random.shuffle(color_numbers)
+        # trim down the list of numbers to colors action on
+        # if the color is already connected, no further action needed on color
+        for color in color_numbers:
+            if color in colors_connected:
+                color_numbers.remove(color)
+
+        # iterate through remaining colors, finding actions for each
+        for color in color_numbers:
+            coord = to_examine.path_heads[color]
+            color_actions = self.ActionOnCoord(to_examine.state, coord)
+            if len(color_actions['action']) == 0:
+                # color path hit a dead end, this state is dead
+                return {}
+            else:
+                # otherwise add it to a list to be returned
+                valid_actions[color] = color_actions
+
+        return valid_actions
+
+
     # PURPOSE: given a state, a coordinate, and an end_position, the function
     # will return a list of all valid moves.
-    # FORMAT: the 4 possible moves are: [[-1,0], [0,1], [1,0], [0,-1]]
     # VALID MOVE DISQUALIFICATION:
     # 1) moves out of puzzle's bounds
     # 2) moves onto a pre-existing line
     # 3) path moves adjacent to itself, aka, the path 'touches' itself
     # OUTPUT: returns a list of valid actions as well as the coordinates they result in
-    def Actions(self, p_state, coord):
+    # FORMAT: the 4 possible moves are: [[-1,0], [0,1], [1,0], [0,-1]]
+    # Function returns a dict with 'action' being the key to the list of
+    # valid actions. 'coord' is the key for valid coordinates
+    def ActionOnCoord(self, p_state, coord):
         time_before_action_check = time.time()
         upper_bound = len(p_state)
         lower_bound = 0
@@ -181,7 +212,7 @@ class StateTree():
             valid_coords.append(new_coord)
 
         self.total_time_on_action += (time.time() - time_before_action_check)
-        return (valid_actions, valid_coords)
+        return {'action':valid_actions, 'coord':valid_coords}
 
     # PURPSOSE: return the result of taking action on the coordinate of the
     # given state
@@ -210,7 +241,9 @@ class StateTree():
         lower_bound = 0
 
         for color in self.color_end:
+            # find the end point coordinats for color
             end = self.color_end[color]
+            # if the endpoint is adjacent to the its color's path then colors are connected
             for direction in [[-1,0], [0,1], [1,0], [0,-1]]:
                 adj_row = end[0]+direction[0]
                 adj_col = end[1]+direction[1]
@@ -227,12 +260,14 @@ class StateTree():
 
         self.total_time_on_final += (time.time() - time_before_final_check)
         if len(colors_connected) == self.num_colors:
+            # if all colors are connected, return true
             return True
         else:
+            # otherwise return a list of the colors who are connected
             return colors_connected
 
     # PURPOSE: given the final node. find path from the final node to the root
-    # OUTPUT: list of all the nodes from root to final -> [root, ... , final]
+    # OUTPUT: list of all the nodes from root to final. [root, ... , final]
     def TraceBack(self, end_node):
         node_path = []
         node = end_node
@@ -258,18 +293,8 @@ class StateTree():
         print 'CREATED: ', self.ID
         print 'EXPANDED:', (self.state_dict[self.ID]).p_ID
 
-    def PrintRelation(self, parent, actions):
-        print '== PARENT =='
-        Visualize(parent.state)
-
-        print '== CHILDREN =='
-        # create a new child state for each valid action
-        for i in xrange(len(actions)):
-            action = actions[i]
-            # retulting child state from parent acted on by action
-            # c_state = self.Result(parent.state, coord, action)
-            Visualize(c_state)
-
+    # PURPOSE: allows user to enter a state's ID and see the state
+    # LOOP: loops infinatly until user enters anything but a number
     def StateLookup(self):
         print 'Enter Desired State ID to look up State'
         user_in = int(raw_input('>'))
@@ -284,19 +309,23 @@ class StateTree():
 ## FUNCTIONS
 ################################################################################
 
+# PURPSOSE: reads in a puzzle file and parses the data for solving
+# INPUT: first line: # rows/columns, # of colors
+# the input puzzle will follow as a square matrix
+# OUTPUT: returns a tuple with the number of colors and the puzzle as a 2D array
 def ReadInput(pzzl_file):
     f_hand = open(pzzl_file)
 
     pzzl_array = []
+    # read every line into pzzle_array (even first line)
     for line in f_hand:
         line = line.split()
         pzzl_array.append(line)
-
+    # pop first line and store it's second element (num colors)
     first_line = pzzl_array.pop(0)
     num_colors = int(first_line.pop())
 
-    # transpose array since dr. t wants the coordinates in [c, r] format
-    # pzzl_array = Transpose(pzzl_array)
+    f_hand.close()
     return (num_colors, pzzl_array)
 
 
@@ -314,8 +343,10 @@ def FindColorStart(puzzle, num_colors):
             char_found = puzzle[row_i][col_i]
             if char_found == 'e':
                 continue
+            # if number has not been seen yet, it is the Start Position
             if int(char_found) in color_nums:
                 num_found = int(char_found)
+                # remove it from the list so it won't be found again
                 color_nums.remove(num_found)
                 coordinates[num_found] = [row_i, col_i]
 
@@ -362,7 +393,8 @@ def FindColorEnd(puzzle, num_colors):
 
     return coordinates
 
-
+# PURPOSE: given a list of action coordinates, it will translate them into
+# plain english ['right', 'up', 'down', or 'right']
 def DirPrint(directions):
     dir_array = []
     for direction in directions:
@@ -375,6 +407,7 @@ def DirPrint(directions):
             elif col_dir == -1:
                 dir_array.append('left')
             else:
+                # this one should never be used
                 dir_array.append('stay')
         elif row_dir == 1:
             dir_array.append('down')
@@ -383,8 +416,48 @@ def DirPrint(directions):
 
     return dir_array
 
+# PURPOSE: prints out action sequence and final array
+# INPUT: list of nodes from root to final for solution path and number of colors
+# OUTPUT: action format: color col_moved_to row_moved_to, color col_moved_to etc.
+def UglyPrint(sol_nodes, num_colors):
+    colors_connected = []
+    root_state = sol_nodes[0].state
+    final_state = sol_nodes[-1].state
+    upper_bound = len(final_state)
+    lower_bound = 0
 
+    # find all actions stored by states
+    actions = []
+    for node in sol_nodes:
+        if node.action == None:
+            continue
+        else:
+            actions.append(node.action)
+    # find the last actions to get to 'officially' connect the colors
+    endpoints = FindColorEnd(root_state, num_colors)
+    for color in endpoints:
+        # find the end point coordinats for color
+        end = endpoints[color]
+        actions.append([color, end[0], end[1]])
+
+    for i, action in enumerate(actions):
+        # switch the row and col actions because thats how Dr. T wants it
+        if i+1 < len(actions): comma = ','
+        else: comma = ''
+
+        print '%d %d %d%s' % (action[0], action[2], action[1], comma),
+    print
+
+    # print final state
+    for row in final_state:
+        for char in row:
+            print char,
+        print
+
+# PURPOSE: prints out a visual representation of the 2D state array
+# INPUT: accepts square matricies in the form of a 2D array only
 def Visualize(puzzle):
+    # pretty colors
     colors = [bcolors.HEADER, bcolors.OKGREEN, bcolors.WARNING,
                 bcolors.FAIL, bcolors.OKBLUE]
     # top horizontal divider
@@ -433,9 +506,9 @@ elif not appreciation_4_beauty:
     # time in microseconds
     print int((time.time() - start_time)*1000000)
     # path cost of solution
-    print solution[-1].path_cost
+    print solution[-1].path_cost + num_colors
     # print actions and final state
-    # UglyPrint(solution, sol_actions)
+    UglyPrint(solution, num_colors)
 # PRETTY SOLUTION
 else:
     for node in solution:
@@ -449,6 +522,4 @@ else:
 ### TODO
 
 # finish the UGLY PRINT option
-# get the runtime down to under 10 seconds for puzzle 2
-# add more comments
-# make code more readable
+# remove unnessisary functions

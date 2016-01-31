@@ -87,10 +87,12 @@ class StateTree():
 
             # retrive all valid actions from this color's path head
             valid_actions = self.Action(to_examine)
+            valid_colors = valid_actions.keys()
+            random.shuffle(valid_colors)
             # for color_num in valid_actions:
             #     print '%d:' % color_num, DirPrint(valid_actions[color_num]['action'])
             # iterate through colors in puzzle, checking for actions on each
-            for color_num in valid_actions:
+            for color_num in valid_colors:
                 # print '-- COLOR %d --' % color_num
                 color_actions = valid_actions[color_num]['action']
                 color_coords = valid_actions[color_num]['coord']
@@ -138,7 +140,6 @@ class StateTree():
         colors_connected = self.VerifyFinal(to_examine.state)
         # get a list of colors in puzzle and shuffle it
         color_numbers = range(self.num_colors)
-        random.shuffle(color_numbers)
         # trim down the list of numbers to colors action on
         # if the color is already connected, no further action needed on color
         for color in color_numbers:
@@ -146,6 +147,7 @@ class StateTree():
                 color_numbers.remove(color)
 
         # iterate through remaining colors, finding actions for each
+        random.shuffle(color_numbers)
         for color in color_numbers:
             coord = to_examine.path_heads[color]
             color_actions = self.ActionOnCoord(to_examine.state, coord)

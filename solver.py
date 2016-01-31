@@ -32,7 +32,9 @@ class Node():
         self.ID = ID # integer
         self.p_ID = parent_node # integer
         self.state = state # format: [[... row 1 ...], [... row 2 ...], ...]
-        self.action = action # format: [x, y] where x and y are in [-1, 0, 1]
+        self.action = action # format: [c, x, y]
+        # where x and y are in [-1, 0, 1] and x is the row move, y is the
+        # col move, and c is the color
         self.path_cost = None # integer (depth of state in tree)
 
         self.path_heads = {} # dictionary containing the furthes a color path
@@ -75,7 +77,7 @@ class StateTree():
         while True:
             # If queue is empty, no solution exits
             if len(queue) == 0:
-                self.EndSequence(False)
+                # self.EndSequence(False)
                 return False
 
             # dequeue the front element
@@ -103,10 +105,11 @@ class StateTree():
                     c_state = self.Result(to_examine.state, to_examine.path_heads[color_num], action)
                     # Visualize(c_state)
                     # create new node
-                    child = Node(ID=self.ID, parent_node=to_examine.ID, state=c_state, action=action)
+                    action_coord.insert(0, color_num)
+                    child = Node(ID=self.ID, parent_node=to_examine.ID, state=c_state, action=action_coord)
                     # updated the child's path heads
                     child.path_heads = to_examine.path_heads.copy()
-                    child.path_heads[color_num] = action_coord
+                    child.path_heads[color_num] = action_coord[1:]
                     # update child's path cost
                     child.path_cost = to_examine.path_cost + 1
                     # add child to the dict
@@ -116,7 +119,7 @@ class StateTree():
                     if colors_connected == True:
                         # a goal state has been found
                         # return the final state and it's ancestors
-                        self.EndSequence(True)
+                        # self.EndSequence(True)
                         return (self.TraceBack(child))
                     # push child onto queue
                     queue.append(child)
@@ -413,6 +416,44 @@ def DirPrint(directions):
 
     return dir_array
 
+# PURPOSE: prints out action sequence and final array
+# INPUT: list of nodes from root to final for solution path and number of colors
+# OUTPUT: action format: color col_moved_to row_moved_to, color col_moved_to etc.
+def UglyPrint(sol_nodes, num_colors):
+    colors_connected = []
+    root_state = sol_nodes[0].state
+    final_state = sol_nodes[-1].state
+    upper_bound = len(final_state)
+    lower_bound = 0
+
+    # find all actions stored by states
+    actions = []
+    for node in sol_nodes:
+        if node.action == None:
+            continue
+        else:
+            actions.append(node.action)
+    # find the last actions to get to 'officially' connect the colors
+    endpoints = FindColorEnd(root_state, num_colors)
+    for color in endpoints:
+        # find the end point coordinats for color
+        end = endpoints[color]
+        actions.append([color, end[0], end[1]])
+
+    for i, action in enumerate(actions):
+        # switch the row and col actions because thats how Dr. T wants it
+        if i+1 < len(actions): comma = ','
+        else: comma = ''
+
+        print '%d %d %d%s' % (action[0], action[2], action[1], comma),
+    print
+
+    # print final state
+    for row in final_state:
+        for char in row:
+            print char,
+        print
+
 # PURPOSE: prints out a visual representation of the 2D state array
 # INPUT: accepts square matricies in the form of a 2D array only
 def Visualize(puzzle):
@@ -465,9 +506,9 @@ elif not appreciation_4_beauty:
     # time in microseconds
     print int((time.time() - start_time)*1000000)
     # path cost of solution
-    print solution[-1].path_cost
+    print solution[-1].path_cost + num_colors
     # print actions and final state
-    # UglyPrint(solution, sol_actions)
+    UglyPrint(solution, num_colors)
 # PRETTY SOLUTION
 else:
     for node in solution:

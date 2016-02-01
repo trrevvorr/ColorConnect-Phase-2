@@ -549,11 +549,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-###################################
-# TODO
-
-# finish the UGLY PRINT option
-# remove unnessisary functions
-# Curently 495 lines, make it fewer

@@ -23,11 +23,11 @@ If you instead compile with `python solver.py input_p1.txt pretty`, the output w
 The game is Color Connect. Given a square playing board (n x n), connect the matching colors with an unbroken line. All colors must be connected and no two lines may cross. When referencing a point in the grid, the upper left corner is 0x0 and the column should be listed first. Ex: 1,2 = column 1, row 2
 
 #### Example Input
-4 2      <- 4x4 grid with 2 colors  
-0 e e e  <- first row, color 0 starts at position 0,0  
-e e 1 e  <- color 1 starts at 2,1  
-e e e e  
-1 e e 0	<- colors 1 and 0 end on row 4
+`4 2`      <- 4x4 grid with 2 colors  
+`0 e e e`  <- first row, color 0 starts at position 0,0  
+`e e 1 e`  <- color 1 starts at 2,1  
+`e e e e`  
+`1 e e 0`	<- colors 1 and 0 end on row 4
 
 
 

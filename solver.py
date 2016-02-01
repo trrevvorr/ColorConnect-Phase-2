@@ -425,18 +425,25 @@ def DirPrint(directions):
 
 def UglyPrint(PTree, sol_nodes, num_colors):
     """
-    Prints out action sequence and final array
+    Prints out action sequence and final array to command line (as well as solution file)
 
     INPUT: list of nodes from root to final for solution path and number of colors
     OUTPUT: action format: color col_moved_to row_moved_to, color col_moved_to etc.
     """
     root_state = sol_nodes[0].state
     final_state = sol_nodes[-1].state
+    in_file_name = sys.argv[1]
+    out_file_name = 'p%s_solution.txt' % in_file_name[7]
+    out_file = open(out_file_name, 'w')
 
     # time in microseconds
     print int(PTree.run_time * 1000000)
+    out_file.write(str(int(PTree.run_time * 1000000)))
+    out_file.write('\n')
     # path cost of solution
     print sol_nodes[-1].path_cost + num_colors
+    out_file.write(str(sol_nodes[-1].path_cost + num_colors))
+    out_file.write('\n')
     # print actions and final state
 
     # find all actions stored by states
@@ -459,15 +466,21 @@ def UglyPrint(PTree, sol_nodes, num_colors):
             comma = ','
         else:
             comma = ''
-
-        print '%d %d %d%s' % (action[0], action[2], action[1], comma),
+        output = '%d %d %d%s' % (action[0], action[2], action[1], comma)
+        print output,
+        out_file.write(output)
     print
+    out_file.write('\n')
 
     # print final state
     for row in final_state:
         for char in row:
             print char,
+            out_file.write(char + ' ')
         print
+        out_file.write('\n')
+
+    out_file.close()
 
 
 def Visualize(puzzle):

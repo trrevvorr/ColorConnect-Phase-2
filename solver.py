@@ -53,12 +53,14 @@ class StateTree(object):
         # TIMING VARIABLE
         self.run_time = time.time()
 
-    # PURPOSE: finds optimal solution to puzzle by using breadth first search
-    # Each state is first enqued, in a FIFO queue. Later, the element will be
-    # dequeued. Once it is dequeued, all it's valid moves will be found and
-    # a child state will be created and enqueued for each one.
-    # OUTPUT: either False or list of states leading to solution
     def BreadthFirstTreeSearch(self):
+        """
+        PURPOSE: finds optimal solution to puzzle by using breadth first search
+        Each state is first enqued, in a FIFO queue. Later, the element will be
+        dequeued. Once it is dequeued, all it's valid moves will be found and
+        a child state will be created and enqueued for each one.
+        OUTPUT: either False or list of states leading to solution
+        """
         self.run_time = time.time()
         # queue will store the ID of the node, to get the node, look up the
         # ID in the node_dict
@@ -146,17 +148,20 @@ class StateTree(object):
 
         return valid_actions
 
-    # PURPOSE: given a state, a coordinate, and an end_position, the function
-    # will return a list of all valid moves.
-    # VALID MOVE DISQUALIFICATION:
-    # 1) moves out of puzzle's bounds
-    # 2) moves onto a pre-existing line
-    # 3) path moves adjacent to itself, aka, the path 'touches' itself
-    # OUTPUT: returns a list of valid actions as well as the coordinates they result in
-    # FORMAT: the 4 possible moves are: [[-1,0], [0,1], [1,0], [0,-1]]
-    # Function returns a dict with 'action' being the key to the list of
-    # valid actions. 'coord' is the key for valid coordinates
     def ActionOnCoord(self, p_state, coord, color):
+        """
+        Given a state, a coordinate, and an end_position, the function
+        will return a list of all valid moves.
+
+        VALID MOVE DISQUALIFICATION:
+        1) moves out of puzzle's bounds
+        2) moves onto a pre-existing line
+        3) path moves adjacent to itself, aka, the path 'touches' itself
+        OUTPUT: returns a list of valid actions as well as the coordinates they result in
+        FORMAT: the 4 possible moves are: [[-1,0], [0,1], [1,0], [0,-1]]
+        Function returns a dict with 'action' being the key to the list of
+        valid actions. 'coord' is the key for valid coordinates
+        """
         end_coord = self.color_end[color]
         valid_actions = []
         valid_coords = []
@@ -194,10 +199,13 @@ class StateTree(object):
 
         return {'action': valid_actions, 'coord': valid_coords}
 
-    # PURPOSE: verify that the passed state is a final state
-    # IF FINAL: return True
-    # IF NOT FINAL: return a list of those colors who are final
     def VerifyFinal(self, pzzl_state):
+        """
+        Verify that the passed state is a final state
+
+        IF FINAL: return True
+        IF NOT FINAL: return a list of those colors who are final
+        """
         colors_connected = []
 
         for color in self.color_end:
@@ -222,9 +230,12 @@ class StateTree(object):
             # otherwise return a list of the colors who are connected
             return colors_connected
 
-    # PURPOSE: given the final node. find path from the final node to the root
-    # OUTPUT: list of all the nodes from root to final. [root, ... , final]
     def TraceBack(self, end_node):
+        """
+        Given the final node. find path from the final node to the root
+
+        OUTPUT: list of all the nodes from root to final. [root, ... , final]
+        """
         node_path = []
         node = end_node
         # keep adding node to node_path until root node is found
@@ -237,9 +248,12 @@ class StateTree(object):
         node_path.insert(0, node)
         return node_path
 
-    # PURPOSE: allows user to enter a state's ID and see the state
-    # LOOP: loops infinatly until user enters anything but a number
     def StateLookup(self):
+        """
+        Allows user to enter a state's ID and see the state
+
+        LOOP: loops infinatly until user enters anything but a number
+        """
         print 'Enter Desired State ID to look up State'
         user_in = int(raw_input('>'))
         while True:
@@ -275,9 +289,11 @@ def ReadInput(pzzl_file):
     f_hand.close()
     return (num_colors, pzzl_array)
 
-# PURPOSE: returns true if coordinats are out of bounds of the puzzle
-# returs false otherwise
+
 def OutOfBounds(coord, puzzle_dim):
+    """
+    Returns true if coordinats are out of bounds of the puzzle returs false otherwise
+    """
     new_row, new_col = coord
     LOWER_BOUND = 0
     UPPER_BOUND = puzzle_dim
@@ -290,11 +306,14 @@ def OutOfBounds(coord, puzzle_dim):
     return False
 
 
-# PURPOSE: given the puzzle and the number of colors to find, function will
-# return a dict with the FIRST occurance of the number as the key and its
-# coordinates as the value
-# OUTPUT: dictionary in the format: {0:[r0,c0], 1:[r1,c1],...}
 def FindColorStart(puzzle, num_colors):
+    """
+    Given the puzzle and the number of colors to find, function will
+    return a dict with the FIRST occurance of the number as the key and its
+    coordinates as the value
+
+    OUTPUT: dictionary in the format: {0:[r0,c0], 1:[r1,c1],...}
+    """
     coordinates = {}  # format: {0:[r0,c0], 1:[r1,c1],...} where r = row, c = col
     dim = len(puzzle)
     color_nums = range(num_colors)  # list of all color numbers
@@ -321,11 +340,14 @@ def FindColorStart(puzzle, num_colors):
     return coordinates
 
 
-# PURPOSE: given the puzzle and the number of colors to find, function will
-# return a dict with the LAST occurance of the number as the key and its
-# coordinates as the value
-# OUTPUT: dictionary in the format: {0:[r0,c0], 1:[r1,c1],...}
 def FindColorEnd(puzzle, num_colors):
+    """
+    Given the puzzle and the number of colors to find, function will return
+    a dict with the LAST occurance of the number as the key and its
+    coordinates as the value
+
+    OUTPUT: dictionary in the format: {0:[r0,c0], 1:[r1,c1],...}
+    """
     coordinates = {}  # format: {0:[r0,c0], 1:[r1,c1],...}  where r = row, c = col
     dim = len(puzzle)
     color_nums = range(num_colors)  # list of all color numbers
@@ -354,10 +376,13 @@ def FindColorEnd(puzzle, num_colors):
 
     return coordinates
 
-# PURPSOSE: return the result of taking action on the coordinate of the
-# given state
-# OUTPUT: returns state in the form: [[... row 1 ...], [... row 2 ...], ...]
+
 def Result(p_state, coord, action):
+    """
+    Return the result of taking action on the coordinate of the given state
+
+    OUTPUT: Puzzle state in the form: [[... row 1 ...], [... row 2 ...], ...]
+    """
     new_state = copy.deepcopy(p_state)
     # retrieve the 'color' of the path to be extended
     color_path_to_extend = p_state[coord[0]][coord[1]]
@@ -369,9 +394,14 @@ def Result(p_state, coord, action):
 
     return new_state
 
-# PURPOSE: given a list of action coordinates, it will translate them into
-# plain english ['right', 'up', 'down', or 'right']
+
 def DirPrint(directions):
+    """
+    Translates list of actiton coordinates into plain english
+
+    INPUT: [[0,1], [-1,0], etc.]
+    OUTPUT: ['right', 'up', 'down', or 'right']
+    """
     dir_array = []
     for direction in directions:
         row_dir = direction[0]
@@ -392,11 +422,14 @@ def DirPrint(directions):
 
     return dir_array
 
-# PURPOSE: prints out action sequence and final array
-# INPUT: list of nodes from root to final for solution path and number of colors
-# OUTPUT: action format: color col_moved_to row_moved_to, color col_moved_to etc.
-def UglyPrint(PTree, sol_nodes, num_colors):
 
+def UglyPrint(PTree, sol_nodes, num_colors):
+    """
+    Prints out action sequence and final array
+
+    INPUT: list of nodes from root to final for solution path and number of colors
+    OUTPUT: action format: color col_moved_to row_moved_to, color col_moved_to etc.
+    """
     root_state = sol_nodes[0].state
     final_state = sol_nodes[-1].state
 
@@ -464,7 +497,6 @@ def Visualize(puzzle):
 ## Main
 ################################################################################
 
-
 def main():
     random.seed()
     appreciation_4_beauty = False
@@ -500,7 +532,6 @@ def main():
             print '== STATE %d LEVEL %d ==' % (node.ID, node.path_cost)
             Visualize(node.state)
         print '== FINISHED IN %4.4f SECONDS ==' % PTree.run_time
-
 
 
 if __name__ == "__main__":

@@ -1,9 +1,12 @@
-"""Solves Color Connect Puzzle as per AI Puzzle 1 requirement"""
-# AI - CS 5400 - Sec 1A
-# Puzzle Assignmet 1 - Phase 1
-#
-# Trevor Ross
-# 01/27/2016
+"""
+Solves Color Connect Puzzle as per AI Puzzle 1 requirement
+
+AI - CS 5400 - Sec 1A
+Puzzle Assignmet 1 - Phase 1
+
+Trevor Ross
+01/27/2016
+"""
 
 import sys
 import copy
@@ -19,15 +22,15 @@ import time
 class Node(object):
     """Tree node for State Tree"""
     def __init__(self, ID=None, parent_node=None, state=None, action=None):
-        self.ID = ID # integer
-        self.p_ID = parent_node # integer
-        self.state = state # format: [[... row 1 ...], [... row 2 ...], ...]
-        self.action = action # format: [c, x, y]
+        self.ID = ID  # integer
+        self.p_ID = parent_node  # integer
+        self.state = state  # format: [[... row 1 ...], [... row 2 ...], ...]
+        self.action = action  # format: [c, x, y]
         # where x and y are in [-1, 0, 1] and x is the row move, y is the
         # col move, and c is the color
-        self.path_cost = None # integer (depth of state in tree)
+        self.path_cost = None  # integer (depth of state in tree)
 
-        self.path_heads = {} # dictionary containing the furthes a color path
+        self.path_heads = {}  # dictionary containing the furthes a color path
         # has travled in the current state. format: {0:[r0,c0], 1:[r1,c1], ...}
 
 
@@ -45,7 +48,7 @@ class StateTree(object):
         self.color_end = FindColorEnd(self.root.state, self.num_colors)
         self.root.path_cost = 0
         # dictionary of nodes indexed by their ID
-        self.node_dict = {self.root.ID:self.root}
+        self.node_dict = {self.root.ID: self.root}
 
         # TIMING VARIABLE
         self.run_time = time.time()
@@ -62,7 +65,7 @@ class StateTree(object):
         queue = Queue()
         queue.put(self.root.ID)
 
-        # loop until final state is found or queue is emptied
+        # Loop until final state is found or queue is emptied
         while not queue.empty():
             # dequeue the front element
             to_examine = self.node_dict[queue.get()]
@@ -101,7 +104,7 @@ class StateTree(object):
                     self.node_dict[child.ID] = child
                     # check if child is Goal State
                     colors_connected = self.VerifyFinal(child.state)
-                    if colors_connected == True:
+                    if colors_connected is True:
                         # a goal state has been found
                         # return the final state and it's ancestors
                         self.run_time = time.time() - self.run_time
@@ -112,13 +115,12 @@ class StateTree(object):
         self.run_time = time.time() - self.run_time
         return False
 
-
     # PURPOSE: give a node, return a list of valid actions
     # VALID MOVE DISQUALIFICATION: if one of the colors hits a dead end
     # A.K.A. it has no valid moves, no valid moves will be returned for any color
     # OUTPUT: dictionary with color nums as keys and their valid outputs
     def Action(self, to_examine):
-        valid_actions = {} # format: {0:{action:[[0,1],...], 'coord':[[2,3],...]},...}
+        valid_actions = {}  # format: {0:{action:[[0,1],...], 'coord':[[2,3],...]},...}
 
         # find which colors are already connected
         colors_connected = self.VerifyFinal(to_examine.state)
@@ -144,7 +146,6 @@ class StateTree(object):
 
         return valid_actions
 
-
     # PURPOSE: given a state, a coordinate, and an end_position, the function
     # will return a list of all valid moves.
     # VALID MOVE DISQUALIFICATION:
@@ -164,8 +165,8 @@ class StateTree(object):
         action_options = [[-1,0], [0,1], [1,0], [0,-1]]
         random.shuffle(action_options)
         for action in action_options:
-            new_row = coord[0]+action[0]
-            new_col = coord[1]+action[1]
+            new_row = coord[0] + action[0]
+            new_col = coord[1] + action[1]
             # check if move is out-of-bounds
             if OutOfBounds([new_row, new_col], len(p_state)):
                 continue
@@ -175,8 +176,8 @@ class StateTree(object):
             # check if move results in path becoming adjacent to itself
             adj_itself = 0
             for adj in action_options:
-                adj_row = new_row+adj[0]
-                adj_col = new_col+adj[1]
+                adj_row = new_row + adj[0]
+                adj_col = new_col + adj[1]
                 # check if adjacent square is out-of-bounds
                 if OutOfBounds([adj_row, adj_col], len(p_state)):
                     continue
@@ -191,7 +192,7 @@ class StateTree(object):
             valid_actions.append(action)
             valid_coords.append(new_coord)
 
-        return {'action':valid_actions, 'coord':valid_coords}
+        return {'action': valid_actions, 'coord': valid_coords}
 
     # PURPOSE: verify that the passed state is a final state
     # IF FINAL: return True
@@ -204,8 +205,8 @@ class StateTree(object):
             end = self.color_end[color]
             # if the endpoint is adjacent to the its color's path then colors are connected
             for direction in [[-1,0], [0,1], [1,0], [0,-1]]:
-                adj_row = end[0]+direction[0]
-                adj_col = end[1]+direction[1]
+                adj_row = end[0] + direction[0]
+                adj_col = end[1] + direction[1]
                 # ignore if out-of-bounds
                 if OutOfBounds([adj_row, adj_col], len(pzzl_state)):
                     continue
@@ -227,7 +228,7 @@ class StateTree(object):
         node_path = []
         node = end_node
         # keep adding node to node_path until root node is found
-        while node.action != None:
+        while node.action is not None:
             # insert in front of list since traversal is bottom-up
             node_path.insert(0, node)
             # move to partent node
@@ -252,11 +253,14 @@ class StateTree(object):
 ## FUNCTIONS
 ################################################################################
 
-# PURPSOSE: reads in a puzzle file and parses the data for solving
-# INPUT: first line: # rows/columns, # of colors
-# the input puzzle will follow as a square matrix
-# OUTPUT: returns a tuple with the number of colors and the puzzle as a 2D array
 def ReadInput(pzzl_file):
+    """
+    Reads in a puzzle file and parses the data for solving
+
+    INPUT: first line: # rows/columns, # of colors
+    the input puzzle will follow as a square matrix
+    OUTPUT: returns a tuple with the number of colors and the puzzle as a 2D array
+    """
     f_hand = open(pzzl_file)
 
     pzzl_array = []
@@ -291,9 +295,9 @@ def OutOfBounds(coord, puzzle_dim):
 # coordinates as the value
 # OUTPUT: dictionary in the format: {0:[r0,c0], 1:[r1,c1],...}
 def FindColorStart(puzzle, num_colors):
-    coordinates = {} # format: {0:[r0,c0], 1:[r1,c1],...} where r = row, c = col
+    coordinates = {}  # format: {0:[r0,c0], 1:[r1,c1],...} where r = row, c = col
     dim = len(puzzle)
-    color_nums = range(num_colors) # list of all color numbers
+    color_nums = range(num_colors)  # list of all color numbers
     # find coordinate for each color start
     for row_i in xrange(dim):
         for col_i in xrange(dim):
@@ -322,9 +326,9 @@ def FindColorStart(puzzle, num_colors):
 # coordinates as the value
 # OUTPUT: dictionary in the format: {0:[r0,c0], 1:[r1,c1],...}
 def FindColorEnd(puzzle, num_colors):
-    coordinates = {} # format: {0:[r0,c0], 1:[r1,c1],...}  where r = row, c = col
+    coordinates = {}  # format: {0:[r0,c0], 1:[r1,c1],...}  where r = row, c = col
     dim = len(puzzle)
-    color_nums = range(num_colors) # list of all color numbers
+    color_nums = range(num_colors)  # list of all color numbers
     # find coordinate for each color start
     for row_i in xrange(dim):
         for col_i in xrange(dim):
@@ -358,8 +362,8 @@ def Result(p_state, coord, action):
     # retrieve the 'color' of the path to be extended
     color_path_to_extend = p_state[coord[0]][coord[1]]
     # find the location to place the extention
-    new_row = coord[0]+action[0]
-    new_col = coord[1]+action[1]
+    new_row = coord[0] + action[0]
+    new_col = coord[1] + action[1]
     # 'color' the new loaction, extending the line
     new_state[new_row][new_col] = color_path_to_extend
 
@@ -392,6 +396,7 @@ def DirPrint(directions):
 # INPUT: list of nodes from root to final for solution path and number of colors
 # OUTPUT: action format: color col_moved_to row_moved_to, color col_moved_to etc.
 def UglyPrint(PTree, sol_nodes, num_colors):
+
     root_state = sol_nodes[0].state
     final_state = sol_nodes[-1].state
 
@@ -404,7 +409,7 @@ def UglyPrint(PTree, sol_nodes, num_colors):
     # find all actions stored by states
     actions = []
     for node in sol_nodes:
-        if node.action == None:
+        if node.action is None:
             continue
         else:
             actions.append(node.action)
@@ -417,8 +422,10 @@ def UglyPrint(PTree, sol_nodes, num_colors):
 
     for i, action in enumerate(actions):
         # switch the row and col actions because thats how Dr. T wants it
-        if i+1 < len(actions): comma = ','
-        else: comma = ''
+        if i + 1 < len(actions):
+            comma = ','
+        else:
+            comma = ''
 
         print '%d %d %d%s' % (action[0], action[2], action[1], comma),
     print
@@ -429,27 +436,35 @@ def UglyPrint(PTree, sol_nodes, num_colors):
             print char,
         print
 
-# PURPOSE: prints out a visual representation of the 2D state array
-# INPUT: accepts square matricies in the form of a 2D array only
+
 def Visualize(puzzle):
+    """
+    Prints out a visual representation of the 2D state array
+
+    INPUT: accepts square matricies in the form of a 2D array only
+    """
     # pretty colors
     colors = ['\033[95m', '\033[92m', '\033[93m', '\033[91m', '\033[94m']
     ENDC = '\033[0m'
     # top horizontal divider
     print '%s%s' % (('+---' * len(puzzle)), '+')
     for row in puzzle:
-        print '|', # front vertical divider
+        print '|',  # front vertical divider
         for char in row:
             # empty + vertical divider
-            if char == 'e': print ' ', '|',
+            if char == 'e':
+                print ' ', '|',
             # color num + vertical divider
-            else: print colors[int(char)%5] + char + ENDC, '|',
+            else:
+                print colors[int(char) % 5] + char + ENDC, '|',
         # horizontal divider
         print '\n%s%s' % (('+---' * len(row)), '+')
 
 ################################################################################
 ## Main
 ################################################################################
+
+
 def main():
     random.seed()
     appreciation_4_beauty = False
@@ -474,7 +489,7 @@ def main():
 
     ## PRINT SOLUTION ##
     # if puzzle is impossible, say so
-    if solution == False:
+    if solution is False:
         print '== NO SOLUTION POSSIBLE! =='
     # UGLY SOLUTION
     elif not appreciation_4_beauty:
@@ -487,12 +502,13 @@ def main():
         print '== FINISHED IN %4.4f SECONDS ==' % PTree.run_time
 
 
+
 if __name__ == "__main__":
     main()
 
 
 ###################################
-### TODO
+# TODO
 
 # finish the UGLY PRINT option
 # remove unnessisary functions

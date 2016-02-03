@@ -22,16 +22,65 @@ import time
 class Node(object):
     """Tree node for State Tree"""
     def __init__(self, ID=None, parent_node=None, state=None, action=None):
+        # Unique identifier for this node
         self.ID = ID  # integer
+        # ID of parent node
         self.p_ID = parent_node  # integer
-        self.state = state  # format: [[... row 1 ...], [... row 2 ...], ...]
-        self.action = action  # format: [c, x, y]
-        # where x and y are in [-1, 0, 1] and x is the row move, y is the
-        # col move, and c is the color
-        self.path_cost = None  # integer (depth of state in tree)
 
-        self.path_heads = {}  # dictionary containing the furthes a color path
-        # has travled in the current state. format: {0:[r0,c0], 1:[r1,c1], ...}
+        # the curent state of this node in the form of a 2D array
+        self.state = state  # format: [[... row 1 ...], [... row 2 ...], ...]
+        # action that was taken on the parent node to produce this child node
+        self.action = action  # format: [color_num, row_shift, col_shift]
+        # the cost of the path starting at the root, ending at this node
+        self.path_cost = None  # integer
+
+        # coordinates of start positions of all colors in puzzle
+        self.path_start = {}  # format: {0:[r0,c0], 1:[r1,c1], ...}
+        # coordinates of trail head positions of all colors in puzzle
+        self.path_heads = {}  # format: {0:[r0,c0], 1:[r1,c1], ...}
+        # coordinates of end positions of all colors in puzzle
+        self.path_end = {}  # format: {0:[r0,c0], 1:[r1,c1], ...}
+
+    def visualize(self):
+        """
+        Prints out a visual representation of the node
+
+        OUTPUT: 2D array of the state of the node, start and end points are
+        underlined, trail heads are bolded
+        """
+        # pretty colors
+        COLORS = ['\033[95m', '\033[92m', '\033[93m', '\033[91m', '\033[94m']
+        BOLD = '\033[1m'
+        UNDERLINE = '\033[4m'
+        ENDC = '\033[0m'
+
+        # top horizontal divider
+        print '%s%s' % (('+---' * len(self.state)), '+')
+        for r, row in enumerate(self.state):
+            print '|',  # front vertical divider
+            for c, char in enumerate(row):
+                # empty + vertical divider
+                if char == 'e':
+                    print ' ', '|',
+                # color num + vertical divider
+                else:
+                    c_num = int(char)
+                    start_coord = self.path_start[c_num]
+                    head_coord = self.path_heads[c_num]
+                    end_coord = self.path_end[c_num]
+                    # apply colors and styles to color number
+                    # apply color
+                    style = COLORS[c_num % 5]
+                    if [r, c] == start_coord or [r, c] == end_coord:
+                        # start and end points are underlined
+                        style = UNDERLINE + style
+                    elif [r, c] == head_coord:
+                        # trail heads are bolded
+                        style = BOLD + style
+                    # print the cell with style
+                    print style + char + ENDC, '|',
+            # horizontal divider
+            print '\n%s%s' % (('+---' * len(row)), '+')
 
 
 class StateTree(object):
@@ -44,8 +93,10 @@ class StateTree(object):
         self.num_colors = number_of_colors
         # find start and end locations of puzzle colors
         self.color_start = FindColorStart(self.root.state, self.num_colors)
+        self.root.path_start = self.color_start
         self.root.path_heads = self.color_start
         self.color_end = FindColorEnd(self.root.state, self.num_colors)
+        self.root.path_end = self.color_end
         self.root.path_cost = 0
         # dictionary of nodes indexed by their ID
         self.node_dict = {self.root.ID: self.root}
@@ -100,6 +151,8 @@ class StateTree(object):
                     # updated the child's path heads
                     child.path_heads = to_examine.path_heads.copy()
                     child.path_heads[color_num] = action_coord[1:]
+                    child.path_start = to_examine.path_start.copy()
+                    child.path_end = to_examine.path_end.copy()
                     # update child's path cost
                     child.path_cost = to_examine.path_cost + 1
                     # add child to the dict
@@ -543,7 +596,8 @@ def main():
     else:
         for node in solution:
             print '== STATE %d LEVEL %d ==' % (node.ID, node.path_cost)
-            Visualize(node.state)
+            node.visualize()
+            # Visualize(node.state)
         print '== FINISHED IN %4.4f SECONDS ==' % PTree.run_time
 
 

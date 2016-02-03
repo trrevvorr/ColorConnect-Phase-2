@@ -459,22 +459,9 @@ def Result(p_state, coord, action):
     new_row = coord[0] + action[0]
     new_col = coord[1] + action[1]
     # 'color' the new loaction, extending the line
-    try:
-        new_state[new_row][new_col] = color_path_to_extend
-    except IndexError:
-        print 'COORD:', coord
-        print 'ACTION:', action
-        raise IndexError
+    new_state[new_row][new_col] = color_path_to_extend
 
     return new_state
-
-# def move_coord(coord, action):
-#     """
-#     Returns the resulting coord after the action has taken place on the coord
-#
-#     INPUT: coord in the form [r, c] and action in the form [r_, c_]
-#     OUTPUT: returns the new coordinate in form [r', c']
-#     """
 
 
 def DirPrint(directions):
@@ -600,9 +587,8 @@ def main():
     else:
         for node in solution:
             print '== STATE %d LEVEL %d ==' % (node.ID, node.path_cost)
-            node.state_info()
+            # node.state_info()
             node.visualize()
-            # Visualize(node.state)
         print '== FINISHED IN %4.4f SECONDS ==' % PTree.run_time
 
 

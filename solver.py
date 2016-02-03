@@ -10,7 +10,6 @@ Trevor Ross
 
 import sys
 import copy
-from Queue import Queue
 import random
 import time
 
@@ -21,25 +20,42 @@ import time
 
 class Node(object):
     """Tree node for State Tree"""
-    def __init__(self, ID=None, parent_node=None, state=None, action=None):
+    def __init__(self, ID, state, parent_node=None, action=None):
         # Unique identifier for this node
         self.ID = ID  # integer
-        # ID of parent node
-        self.p_ID = parent_node  # integer
-
         # the curent state of this node in the form of a 2D array
         self.state = state  # format: [[... row 1 ...], [... row 2 ...], ...]
         # action that was taken on the parent node to produce this child node
         self.action = action  # format: [color_num, row_shift, col_shift]
-        # the cost of the path starting at the root, ending at this node
-        self.path_cost = None  # integer
 
-        # coordinates of start positions of all colors in puzzle
-        self.path_start = {}  # format: {0:[r0,c0], 1:[r1,c1], ...}
-        # coordinates of trail head positions of all colors in puzzle
-        self.path_heads = {}  # format: {0:[r0,c0], 1:[r1,c1], ...}
-        # coordinates of end positions of all colors in puzzle
-        self.path_end = {}  # format: {0:[r0,c0], 1:[r1,c1], ...}
+        if parent_node is None:
+            self.p_ID = None
+            self.path_cost = None
+            self.path_start = None
+            self.path_heads = None
+            self.path_end = None
+        else:
+            # parent_node = copy.deepcopy(parent_node)
+            # ID of parent node
+            self.p_ID = parent_node.ID  # integer
+            # the cost of the path starting at the root, ending at this node
+            self.path_cost = parent_node.path_cost + 1  # integer
+            # coordinates of start positions of all colors in puzzle
+            self.path_start = parent_node.path_start.copy()  # format: {0:[r0,c0], 1:[r1,c1], ...}
+            # coordinates of trail head positions of all colors in puzzle
+            self.path_heads = parent_node.path_heads.copy()  # format: {0:[r0,c0], 1:[r1,c1], ...}
+            # coordinates of end positions of all colors in puzzle
+            self.path_end = parent_node.path_end.copy()  # format: {0:[r0,c0], 1:[r1,c1], ...}
+
+    def state_info(self):
+        print '=' * 30
+        print 'ID:', self.ID
+        print 'p_ID:', self.p_ID
+        print 'action:', self.action
+        print 'path_cost:', self.path_cost
+        print 'path_start:', self.path_start
+        print 'path_heads:', self.path_heads
+        print 'path_end:', self.path_end
 
     def visualize(self):
         """
@@ -99,86 +115,112 @@ class StateTree(object):
         self.root.path_end = self.color_end
         self.root.path_cost = 0
         # dictionary of nodes indexed by their ID
-        self.node_dict = {self.root.ID: self.root}
+        # self.node_dict = {self.root.ID: self.root}
 
         # TIMING VARIABLE
         self.run_time = time.time()
 
-    def BreadthFirstTreeSearch(self):
+
+    def ID_DFTS(self):
         """
-        PURPOSE: finds optimal solution to puzzle by using breadth first search
-        Each state is first enqued, in a FIFO queue. Later, the element will be
-        dequeued. Once it is dequeued, all it's valid moves will be found and
-        a child state will be created and enqueued for each one.
-        OUTPUT: either False or list of states leading to solution
+        Iterative Depening - Depth First Tree search
         """
         self.run_time = time.time()
-        # queue will store the ID of the node, to get the node, look up the
-        # ID in the node_dict
-        queue = Queue()
-        queue.put(self.root.ID)
+        depth_limit = 0
 
-        # Loop until final state is found or queue is emptied
-        while not queue.empty():
-            # dequeue the front element
-            to_examine = self.node_dict[queue.get()]
-            # print '='*20
-            # print '== PARENT =='
-            # Visualize(to_examine.state)
+        while True:
+            print '=== RUNNING DFTS WITH L = %d ===' % depth_limit
+            result = self.DFTS(depth_limit)
+            if result != 'cutoff':
+                self.run_time = time.time() - self.run_time
+                return result
+            depth_limit += 1
 
-            # retrive all valid actions from this color's path head
-            valid_actions = self.Action(to_examine)
+
+    def DFTS(self, depth_limit):
+        """
+        Depth Limited - Depth First Tree Search
+
+        OUTPUT: 'fail', 'cutoff', or solution
+        """
+        return self.RecursiveDFTS(self.root, depth_limit)
+
+
+    def RecursiveDFTS(self, node, depth_limit):
+        """
+        Performs Depth First Tree Search using recution
+
+        OUTPUT: 'fail', 'cutoff', or a solution
+        """
+        if self.VerifyFinal(node) is True:
+            return [node]
+        elif depth_limit == 0:
+            return 'cutoff'
+        else:
+            cutoff_occurred = False
+            valid_actions = self.Action(node)
+            # node.state_info()
+            # node.visualize()
+            # print 'VALID ACTIONS:', valid_actions
             valid_colors = valid_actions.keys()
             random.shuffle(valid_colors)
-            # for color_num in valid_actions:
-            #     print '%d:' % color_num, DirPrint(valid_actions[color_num]['action'])
-            # iterate through colors in puzzle, checking for actions on each
+            # add children for each color
+            # TODO: make Action() return a list of shuffled actions rather than splitting them between colors
             for color_num in valid_colors:
-                # print '-- COLOR %d --' % color_num
+                # color_actions is a list of valid actions on color's path head
                 color_actions = valid_actions[color_num]['action']
+                # color_coords is a list of resulting coords after valid actions
+                # have been performed on path heads
                 color_coords = valid_actions[color_num]['coord']
                 # create a new child state for each valid action
                 for i in xrange(len(color_actions)):
+                    # action to perform on new child
                     action = color_actions[i]
+                    # resulting path head coordinate of child
                     action_coord = color_coords[i]
                     self.ID += 1
-                    # retulting child state from parent acted on by action
-                    c_state = Result(to_examine.state, to_examine.path_heads[color_num], action)
-                    # Visualize(c_state)
-                    # create new node
-                    action_coord.insert(0, color_num)
-                    child = Node(ID=self.ID, parent_node=to_examine.ID, state=c_state, action=action_coord)
-                    # updated the child's path heads
-                    child.path_heads = to_examine.path_heads.copy()
-                    child.path_heads[color_num] = action_coord[1:]
-                    child.path_start = to_examine.path_start.copy()
-                    child.path_end = to_examine.path_end.copy()
-                    # update child's path cost
-                    child.path_cost = to_examine.path_cost + 1
+                    # retulting child node state from parent acted on by action
+                    c_state = Result(node.state, node.path_heads[color_num], action)
+                    # CREATE NEW NODE
+                    # alther action coord for color context
+                    # action_coord.insert(0, color_num)
+                    # TODO: merge node.action and node.path_heads?
+                    child = Node(self.ID, c_state, action=([color_num] + action_coord), parent_node=node)
+                    # updated the child's path head
+                    child.path_heads[color_num] = action_coord
                     # add child to the dict
-                    self.node_dict[child.ID] = child
+                    # self.node_dict[child.ID] = child
+                    result = self.RecursiveDFTS(child, depth_limit - 1)
+                    if result == 'cutoff':
+                        cutoff_occurred = True
+                    elif result != 'fail':
+                        return [node] + result
                     # check if child is Goal State
-                    colors_connected = self.VerifyFinal(child.state)
-                    if colors_connected is True:
-                        # a goal state has been found
-                        # return the final state and it's ancestors
-                        self.run_time = time.time() - self.run_time
-                        return self.TraceBack(child)
+                    # colors_connected = self.VerifyFinal(child.state)
+                    # if colors_connected is True:
+                    #     # a goal state has been found
+                    #     # return the final state and it's ancestors
+                    #     self.run_time = time.time() - self.run_time
+                    #     return self.TraceBack(child)
                     # push child onto queue
-                    queue.put(child.ID)
-        # queue is empty if loop breaks
-        self.run_time = time.time() - self.run_time
-        return False
+                    # self.stack.append(child.ID)
+            if cutoff_occurred:
+                return 'cutoff'
+            else:
+                return 'fail'
 
-    # PURPOSE: give a node, return a list of valid actions
-    # VALID MOVE DISQUALIFICATION: if one of the colors hits a dead end
-    # A.K.A. it has no valid moves, no valid moves will be returned for any color
-    # OUTPUT: dictionary with color nums as keys and their valid outputs
-    def Action(self, to_examine):
+    def Action(self, node):
+        """
+        Given a node, return a dict of valid actions for each color
+
+        VALID MOVE DISQUALIFICATION: if one of the colors hits a dead end
+        A.K.A. it has no valid moves, no valid moves will be returned for any color
+        OUTPUT: dictionary with color nums as keys and their valid outputs
+        """
         valid_actions = {}  # format: {0:{action:[[0,1],...], 'coord':[[2,3],...]},...}
 
         # find which colors are already connected
-        colors_connected = self.VerifyFinal(to_examine.state)
+        colors_connected = self.VerifyFinal(node)
         # get a list of colors in puzzle and shuffle it
         color_numbers = range(self.num_colors)
         # trim down the list of numbers to colors action on
@@ -190,8 +232,8 @@ class StateTree(object):
         # iterate through remaining colors, finding actions for each
         random.shuffle(color_numbers)
         for color in color_numbers:
-            coord = to_examine.path_heads[color]
-            color_actions = self.ActionOnCoord(to_examine.state, coord, color)
+            coord = node.path_heads[color]
+            color_actions = self.ActionOnCoord(node.state, coord, color)
             if len(color_actions['action']) == 0:
                 # color path hit a dead end, this state is dead
                 return {}
@@ -252,7 +294,7 @@ class StateTree(object):
 
         return {'action': valid_actions, 'coord': valid_coords}
 
-    def VerifyFinal(self, pzzl_state):
+    def VerifyFinal(self, node):
         """
         Verify that the passed state is a final state
 
@@ -261,47 +303,43 @@ class StateTree(object):
         """
         colors_connected = []
 
-        for color in self.color_end:
-            # find the end point coordinats for color
-            end = self.color_end[color]
-            # if the endpoint is adjacent to the its color's path then colors are connected
-            for direction in [[-1,0], [0,1], [1,0], [0,-1]]:
-                adj_row = end[0] + direction[0]
-                adj_col = end[1] + direction[1]
-                # ignore if out-of-bounds
-                if OutOfBounds([adj_row, adj_col], len(pzzl_state)):
-                    continue
-                if pzzl_state[adj_row][adj_col] == str(color):
-                    # color has been connected
-                    colors_connected.append(color)
-                    break
+        for color in node.path_end:
+            # get path_end and path_head coordinates for color
+            end = node.path_end[color]
+            head = node.path_heads[color]
+            # get the difference (offset) betweeen the path_head and path_end
+            row_diff = head[0] - end[0]
+            col_diff = head[1] - end[1]
+            # if the endpoint is adjacent to the path head then state is final
+            if [row_diff, col_diff] in [[-1,0], [0,1], [1,0], [0,-1]]:
+                colors_connected.append(color)
 
-        if len(colors_connected) == self.num_colors:
+        if len(colors_connected) == len(node.path_end):
             # if all colors are connected, return true
             return True
         else:
             # otherwise return a list of the colors who are connected
             return colors_connected
 
-    def TraceBack(self, end_node):
-        """
-        Given the final node. find path from the final node to the root
+    # def TraceBack(self, end_node):
+    #     """
+    #     Given the final node. find path from the final node to the root
+    #
+    #     OUTPUT: list of all the nodes from root to final. [root, ... , final]
+    #     """
+    #     node_path = []
+    #     node = end_node
+    #     # keep adding node to node_path until root node is found
+    #     while node.action is not None:
+    #         # insert in front of list since traversal is bottom-up
+    #         node_path.insert(0, node)
+    #         # move to partent node
+    #         node = self.node_dict[node.p_ID]
+    #     # add the root
+    #     node_path.insert(0, node)
+    #     return node_path
 
-        OUTPUT: list of all the nodes from root to final. [root, ... , final]
-        """
-        node_path = []
-        node = end_node
-        # keep adding node to node_path until root node is found
-        while node.action is not None:
-            # insert in front of list since traversal is bottom-up
-            node_path.insert(0, node)
-            # move to partent node
-            node = self.node_dict[node.p_ID]
-        # add the root
-        node_path.insert(0, node)
-        return node_path
-
-    def StateLookup(self):
+    def node_lookup(self):
         """
         Allows user to enter a state's ID and see the state
 
@@ -310,9 +348,9 @@ class StateTree(object):
         print 'Enter Desired State ID to look up State'
         user_in = int(raw_input('>'))
         while True:
-            state = self.node_dict[user_in]
-            print 'State ID:', state.ID, 'Parent ID:', state.p_ID
-            Visualize(state.state)
+            node = self.node_dict[user_in]
+            print 'State ID:', node.ID, 'Parent ID:', node.p_ID
+            node.visualize()
             user_in = int(raw_input('>'))
 
 
@@ -443,37 +481,49 @@ def Result(p_state, coord, action):
     new_row = coord[0] + action[0]
     new_col = coord[1] + action[1]
     # 'color' the new loaction, extending the line
-    new_state[new_row][new_col] = color_path_to_extend
+    try:
+        new_state[new_row][new_col] = color_path_to_extend
+    except IndexError:
+        print 'COORD:', coord
+        print 'ACTION:', action
+        raise IndexError
 
     return new_state
+
+# def move_coord(coord, action):
+#     """
+#     Returns the resulting coord after the action has taken place on the coord
+#
+#     INPUT: coord in the form [r, c] and action in the form [r_, c_]
+#     OUTPUT: returns the new coordinate in form [r', c']
+#     """
 
 
 def DirPrint(directions):
     """
-    Translates list of actiton coordinates into plain english
+    Translates list of actiton coordinates into plain english and prints them
 
     INPUT: [[0,1], [-1,0], etc.]
-    OUTPUT: ['right', 'up', 'down', or 'right']
+    OUTPUT: right, up, down, left, etc.
     """
-    dir_array = []
     for direction in directions:
         row_dir = direction[0]
         col_dir = direction[1]
 
         if row_dir == 0:
             if col_dir == 1:
-                dir_array.append('right')
+                print 'right,',
             elif col_dir == -1:
-                dir_array.append('left')
+                print 'left,',
             else:
                 # this one should never be used
-                dir_array.append('stay')
+                print 'stay,',
         elif row_dir == 1:
-            dir_array.append('down')
+            print 'down,',
         else:
-            dir_array.append('up')
+            print 'up,',
 
-    return dir_array
+    print
 
 
 def UglyPrint(PTree, sol_nodes, num_colors):
@@ -535,30 +585,6 @@ def UglyPrint(PTree, sol_nodes, num_colors):
 
     out_file.close()
 
-
-def Visualize(puzzle):
-    """
-    Prints out a visual representation of the 2D state array
-
-    INPUT: accepts square matricies in the form of a 2D array only
-    """
-    # pretty colors
-    colors = ['\033[95m', '\033[92m', '\033[93m', '\033[91m', '\033[94m']
-    ENDC = '\033[0m'
-    # top horizontal divider
-    print '%s%s' % (('+---' * len(puzzle)), '+')
-    for row in puzzle:
-        print '|',  # front vertical divider
-        for char in row:
-            # empty + vertical divider
-            if char == 'e':
-                print ' ', '|',
-            # color num + vertical divider
-            else:
-                print colors[int(char) % 5] + char + ENDC, '|',
-        # horizontal divider
-        print '\n%s%s' % (('+---' * len(row)), '+')
-
 ################################################################################
 ## Main
 ################################################################################
@@ -583,7 +609,7 @@ def main():
 
     ## BUILD TREE AND BFTS FOR SOLUTION ##
     PTree = StateTree(pzzl_array, num_colors)
-    solution = PTree.BreadthFirstTreeSearch()
+    solution = PTree.ID_DFTS()
 
     ## PRINT SOLUTION ##
     # if puzzle is impossible, say so
@@ -596,6 +622,7 @@ def main():
     else:
         for node in solution:
             print '== STATE %d LEVEL %d ==' % (node.ID, node.path_cost)
+            node.state_info()
             node.visualize()
             # Visualize(node.state)
         print '== FINISHED IN %4.4f SECONDS ==' % PTree.run_time

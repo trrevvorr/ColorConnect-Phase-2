@@ -161,49 +161,42 @@ class StateTree(object):
             valid_actions = self.Action(node)
             # node.state_info()
             # node.visualize()
-            # print 'VALID ACTIONS:', valid_actions
-            valid_colors = valid_actions.keys()
-            random.shuffle(valid_colors)
-            # add children for each color
-            # TODO: make Action() return a list of shuffled actions rather than splitting them between colors
-            for color_num in valid_colors:
-                # color_actions is a list of valid actions on color's path head
-                color_actions = valid_actions[color_num]['action']
-                # color_coords is a list of resulting coords after valid actions
-                # have been performed on path heads
-                color_coords = valid_actions[color_num]['coord']
-                # create a new child state for each valid action
-                for i in xrange(len(color_actions)):
-                    # action to perform on new child
-                    action = color_actions[i]
-                    # resulting path head coordinate of child
-                    action_coord = color_coords[i]
-                    self.ID += 1
-                    # retulting child node state from parent acted on by action
-                    c_state = Result(node.state, node.path_heads[color_num], action)
-                    # CREATE NEW NODE
-                    # alther action coord for color context
-                    # action_coord.insert(0, color_num)
-                    # TODO: merge node.action and node.path_heads?
-                    child = Node(self.ID, c_state, action=([color_num] + action_coord), parent_node=node)
-                    # updated the child's path head
-                    child.path_heads[color_num] = action_coord
-                    # add child to the dict
-                    # self.node_dict[child.ID] = child
-                    result = self.RecursiveDFTS(child, depth_limit - 1)
-                    if result == 'cutoff':
-                        cutoff_occurred = True
-                    elif result != 'fail':
-                        return [node] + result
-                    # check if child is Goal State
-                    # colors_connected = self.VerifyFinal(child.state)
-                    # if colors_connected is True:
-                    #     # a goal state has been found
-                    #     # return the final state and it's ancestors
-                    #     self.run_time = time.time() - self.run_time
-                    #     return self.TraceBack(child)
-                    # push child onto queue
-                    # self.stack.append(child.ID)
+            # print 'VALID ACTIONS:'
+            # for c_i, action_i, coord_i in valid_actions:
+            #     print '%d:' % c_i,
+            #     DirPrint([action_i])
+
+            for action_set in valid_actions:
+                color_num = action_set[0]
+                action = action_set[1]
+                action_coord = action_set[2]
+
+                self.ID += 1
+                # retulting child node state from parent acted on by action
+                c_state = Result(node.state, node.path_heads[color_num], action)
+                # CREATE NEW NODE
+                # alther action coord for color context
+                # action_coord.insert(0, color_num)
+                # TODO: merge node.action and node.path_heads?
+                child = Node(self.ID, c_state, action=([color_num] + action_coord), parent_node=node)
+                # updated the child's path head
+                child.path_heads[color_num] = action_coord
+                # add child to the dict
+                # self.node_dict[child.ID] = child
+                result = self.RecursiveDFTS(child, depth_limit - 1)
+                if result == 'cutoff':
+                    cutoff_occurred = True
+                elif result != 'fail':
+                    return [node] + result
+                # check if child is Goal State
+                # colors_connected = self.VerifyFinal(child.state)
+                # if colors_connected is True:
+                #     # a goal state has been found
+                #     # return the final state and it's ancestors
+                #     self.run_time = time.time() - self.run_time
+                #     return self.TraceBack(child)
+                # push child onto queue
+                # self.stack.append(child.ID)
             if cutoff_occurred:
                 return 'cutoff'
             else:
@@ -215,9 +208,13 @@ class StateTree(object):
 
         VALID MOVE DISQUALIFICATION: if one of the colors hits a dead end
         A.K.A. it has no valid moves, no valid moves will be returned for any color
-        OUTPUT: dictionary with color nums as keys and their valid outputs
+        OUTPUT: shuffled list of color nums , actions, and new coords
         """
-        valid_actions = {}  # format: {0:{action:[[0,1],...], 'coord':[[2,3],...]},...}
+        # shuffled list of valid actions to perform on node
+        # format: [[n, [r_, c_], [r', c']], [n, [r_, c_], [r', c']], ...]
+        # such that n is the color number, r_ is the row action,
+        # c_ is the column action, r' is the new row, c' is the new column
+        valid_actions = []
 
         # find which colors are already connected
         colors_connected = self.VerifyFinal(node)
@@ -230,23 +227,22 @@ class StateTree(object):
                 color_numbers.remove(color)
 
         # iterate through remaining colors, finding actions for each
-        random.shuffle(color_numbers)
         for color in color_numbers:
-            coord = node.path_heads[color]
-            color_actions = self.ActionOnCoord(node.state, coord, color)
-            if len(color_actions['action']) == 0:
-                # color path hit a dead end, this state is dead
-                return {}
-            else:
-                # otherwise add it to a list to be returned
-                valid_actions[color] = color_actions
+            old_length = len(valid_actions)
+            # add actions for this color to the valid actions list
+            valid_actions += (self.ActionOnColor(node, color))
+            # if no new actions were added, this color has hit a dead end
+            if len(valid_actions) == old_length:
+                # since it has hit a dead end and it's not final no actions returned
+                return []
 
+        random.shuffle(valid_actions)
         return valid_actions
 
-    def ActionOnCoord(self, p_state, coord, color):
+    def ActionOnColor(self, node, color):
         """
-        Given a state, a coordinate, and an end_position, the function
-        will return a list of all valid moves.
+        Given a state, and a color, the function will return a list of all
+        valid moves for that color
 
         VALID MOVE DISQUALIFICATION:
         1) moves out of puzzle's bounds
@@ -257,9 +253,9 @@ class StateTree(object):
         Function returns a dict with 'action' being the key to the list of
         valid actions. 'coord' is the key for valid coordinates
         """
-        end_coord = self.color_end[color]
+        coord = node.path_heads[color]
+        end_coord = node.path_end[color]
         valid_actions = []
-        valid_coords = []
 
         # actions in order: down, right, up, left
         action_options = [[-1,0], [0,1], [1,0], [0,-1]]
@@ -268,10 +264,10 @@ class StateTree(object):
             new_row = coord[0] + action[0]
             new_col = coord[1] + action[1]
             # check if move is out-of-bounds
-            if OutOfBounds([new_row, new_col], len(p_state)):
+            if OutOfBounds([new_row, new_col], len(node.state)):
                 continue
             # check if space is already occupied
-            if p_state[new_row][new_col] != 'e':
+            if node.state[new_row][new_col] != 'e':
                 continue
             # check if move results in path becoming adjacent to itself
             adj_itself = 0
@@ -279,9 +275,9 @@ class StateTree(object):
                 adj_row = new_row + adj[0]
                 adj_col = new_col + adj[1]
                 # check if adjacent square is out-of-bounds
-                if OutOfBounds([adj_row, adj_col], len(p_state)):
+                if OutOfBounds([adj_row, adj_col], len(node.state)):
                     continue
-                if p_state[adj_row][adj_col] == str(color):
+                if node.state[adj_row][adj_col] == str(color):
                     if [adj_row, adj_col] != end_coord:
                         adj_itself += 1
             if adj_itself > 1:
@@ -289,10 +285,9 @@ class StateTree(object):
             # if move is in-bounds, space is not occupied, and path isn't
             # adjacent to itself, it is a valid move
             new_coord = [new_row, new_col]
-            valid_actions.append(action)
-            valid_coords.append(new_coord)
+            valid_actions.append([color, action, new_coord])
 
-        return {'action': valid_actions, 'coord': valid_coords}
+        return valid_actions
 
     def VerifyFinal(self, node):
         """
@@ -321,23 +316,6 @@ class StateTree(object):
             # otherwise return a list of the colors who are connected
             return colors_connected
 
-    # def TraceBack(self, end_node):
-    #     """
-    #     Given the final node. find path from the final node to the root
-    #
-    #     OUTPUT: list of all the nodes from root to final. [root, ... , final]
-    #     """
-    #     node_path = []
-    #     node = end_node
-    #     # keep adding node to node_path until root node is found
-    #     while node.action is not None:
-    #         # insert in front of list since traversal is bottom-up
-    #         node_path.insert(0, node)
-    #         # move to partent node
-    #         node = self.node_dict[node.p_ID]
-    #     # add the root
-    #     node_path.insert(0, node)
-    #     return node_path
 
     def node_lookup(self):
         """

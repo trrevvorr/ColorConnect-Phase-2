@@ -1,11 +1,12 @@
 """
-Solves Color Connect Puzzle as per AI Puzzle 1 requirement
+Solves Color Connect Puzzle via iterative deepining, depth first search as per
+Puzzle 2 requirement
 
 AI - CS 5400 - Sec 1A
-Puzzle Assignmet 1 - Phase 1
+Puzzle Assignmet 2 - Phase 1
 
 Trevor Ross
-01/27/2016
+02/03/2016
 """
 
 import sys
@@ -17,7 +18,6 @@ import time
 ## CLASSES
 ################################################################################
 
-
 class Node(object):
     """Tree node for State Tree"""
     def __init__(self, ID, state, parent_node=None, action=None):
@@ -28,6 +28,7 @@ class Node(object):
         # action that was taken on the parent node to produce this child node
         self.action = action  # format: [color_num, row_shift, col_shift]
 
+        # copy info from parent if one exists
         if parent_node is None:
             self.p_ID = None
             self.path_cost = None
@@ -35,7 +36,6 @@ class Node(object):
             self.path_heads = None
             self.path_end = None
         else:
-            # parent_node = copy.deepcopy(parent_node)
             # ID of parent node
             self.p_ID = parent_node.ID  # integer
             # the cost of the path starting at the root, ending at this node
@@ -48,6 +48,7 @@ class Node(object):
             self.path_end = parent_node.path_end.copy()  # format: {0:[r0,c0], 1:[r1,c1], ...}
 
     def state_info(self):
+        """Prints contents of all member variables in node"""
         print '=' * 30
         print 'ID:', self.ID
         print 'p_ID:', self.p_ID
@@ -100,47 +101,53 @@ class Node(object):
 
 
 class StateTree(object):
-    """Creates a State Tree for all possible states of Puzzle"""
+    """Creates a State Tree for the puzzle, allowing ID-DFTS on said puzzle"""
     def __init__(self, initial_puzzle, number_of_colors):
         # a globla ID index for creating unique node IDs
-        self.ID = 0
+        self.uniq_ID = 0
         # create a root node
-        self.root = Node(self.ID, state=initial_puzzle)
+        self.root = Node(self.uniq_ID, state=initial_puzzle)
         self.num_colors = number_of_colors
-        # find start and end locations of puzzle colors
+        # find coordinates of the start of the color path
         self.color_start = FindColorStart(self.root.state, self.num_colors)
         self.root.path_start = self.color_start
+        # path head is initialy the same as the startng points
         self.root.path_heads = self.color_start
+        # find coordinates of the end of the color path
         self.color_end = FindColorEnd(self.root.state, self.num_colors)
         self.root.path_end = self.color_end
+        # the root has a path cost of 0
         self.root.path_cost = 0
-        # dictionary of nodes indexed by their ID
-        # self.node_dict = {self.root.ID: self.root}
-
-        # TIMING VARIABLE
+        # timing variable
         self.run_time = time.time()
 
 
     def ID_DFTS(self):
         """
         Iterative Depening - Depth First Tree search
+
+        Calls DFTS with a depth limit starting at 0, going to infinity until
+        either a goal is found or the puzzle is determined to be unsolvable
         """
         self.run_time = time.time()
         depth_limit = 0
 
         while True:
-            print '=== RUNNING DFTS WITH L = %d ===' % depth_limit
+            print '=== RUNNING DFTS WITH L = %d ===' % depth_limit  # TODO: remove this line eventually
             result = self.DFTS(depth_limit)
             if result != 'cutoff':
+                # the puzzle has either been solved or found to be unsolvable
                 self.run_time = time.time() - self.run_time
                 return result
+            # increase the depth and try again
             depth_limit += 1
 
 
-    def DFTS(self, depth_limit):
+    def DFTS(self, depth_limit):  # REVIEW: ask TA if i am allowed to remove this function
         """
-        Depth Limited - Depth First Tree Search
+        Depth Limited, Depth First Tree Search
 
+        The purpose of this function is to call its recusive counterpart
         OUTPUT: 'fail', 'cutoff', or solution
         """
         return self.RecursiveDFTS(self.root, depth_limit)
@@ -151,63 +158,51 @@ class StateTree(object):
         Performs Depth First Tree Search using recution
 
         OUTPUT: 'fail', 'cutoff', or a solution
+        solution contains a list of nodes with the last item being the final state
         """
         if self.VerifyFinal(node) is True:
             return [node]
         elif depth_limit == 0:
+            # the depth limit has been reached
             return 'cutoff'
         else:
             cutoff_occurred = False
+            # OPTIMIZATION: store the list of final states from the if statement
+            # above and pass it to the Action() funtion so it doen't have to
+            # check the same thing again
             valid_actions = self.Action(node)
-            # node.state_info()
-            # node.visualize()
-            # print 'VALID ACTIONS:'
-            # for c_i, action_i, coord_i in valid_actions:
-            #     print '%d:' % c_i,
-            #     DirPrint([action_i])
-
-            for action_set in valid_actions:
-                color_num = action_set[0]
-                action = action_set[1]
-                action_coord = action_set[2]
-
-                self.ID += 1
-                # retulting child node state from parent acted on by action
-                c_state = Result(node.state, node.path_heads[color_num], action)
-                # CREATE NEW NODE
-                # alther action coord for color context
-                # action_coord.insert(0, color_num)
-                # TODO: merge node.action and node.path_heads?
-                child = Node(self.ID, c_state, action=([color_num] + action_coord), parent_node=node)
+            for color_num, action, new_coord in valid_actions:
+                self.uniq_ID += 1
+                # retulting child state from parent acted on by action
+                child_state = Result(node.state, node.path_heads[color_num], action)
+                # create the new child node
+                child = Node(self.uniq_ID, child_state, action=([color_num] + new_coord), parent_node=node)
                 # updated the child's path head
-                child.path_heads[color_num] = action_coord
-                # add child to the dict
-                # self.node_dict[child.ID] = child
+                child.path_heads[color_num] = new_coord
+                # perform recursive DFTS on newly created child
                 result = self.RecursiveDFTS(child, depth_limit - 1)
+                # analize result of recursive call
                 if result == 'cutoff':
                     cutoff_occurred = True
                 elif result != 'fail':
+                    # Recursive call succeded!!!
                     return [node] + result
-                # check if child is Goal State
-                # colors_connected = self.VerifyFinal(child.state)
-                # if colors_connected is True:
-                #     # a goal state has been found
-                #     # return the final state and it's ancestors
-                #     self.run_time = time.time() - self.run_time
-                #     return self.TraceBack(child)
-                # push child onto queue
-                # self.stack.append(child.ID)
+
+            # all children have been tested, none were successful :(
             if cutoff_occurred:
                 return 'cutoff'
             else:
                 return 'fail'
 
+
     def Action(self, node):
         """
-        Given a node, return a dict of valid actions for each color
+        Given a node, return a shuffled list of valid actions on that node
 
-        VALID MOVE DISQUALIFICATION: if one of the colors hits a dead end
-        A.K.A. it has no valid moves, no valid moves will be returned for any color
+        VALID MOVE DISQUALIFICATION: if even ONE of the colors has no valid
+        moves and is not in a goal state, no valid moves will be returned for
+        ANY other colors. Furthermore, ActionOnColor() is called and it further
+        limits the amount of actions returned
         OUTPUT: shuffled list of color nums , actions, and new coords
         """
         # shuffled list of valid actions to perform on node
@@ -220,7 +215,6 @@ class StateTree(object):
         colors_connected = self.VerifyFinal(node)
         # get a list of colors in puzzle and shuffle it
         color_numbers = range(self.num_colors)
-        # trim down the list of numbers to colors action on
         # if the color is already connected, no further action needed on color
         for color in color_numbers:
             if color in colors_connected:
@@ -233,7 +227,7 @@ class StateTree(object):
             valid_actions += (self.ActionOnColor(node, color))
             # if no new actions were added, this color has hit a dead end
             if len(valid_actions) == old_length:
-                # since it has hit a dead end and it's not final no actions returned
+                # since it has hit a dead end and it's not final, no actions returned
                 return []
 
         random.shuffle(valid_actions)
@@ -241,57 +235,62 @@ class StateTree(object):
 
     def ActionOnColor(self, node, color):
         """
-        Given a state, and a color, the function will return a list of all
+        Given a node and a color, the function will return a list of all
         valid moves for that color
 
         VALID MOVE DISQUALIFICATION:
-        1) moves out of puzzle's bounds
-        2) moves onto a pre-existing line
-        3) path moves adjacent to itself, aka, the path 'touches' itself
-        OUTPUT: returns a list of valid actions as well as the coordinates they result in
-        FORMAT: the 4 possible moves are: [[-1,0], [0,1], [1,0], [0,-1]]
-        Function returns a dict with 'action' being the key to the list of
-        valid actions. 'coord' is the key for valid coordinates
+        1) action moves color path out of puzzle's bounds
+        2) action moves color path onto a pre-existing path
+        3) action moves color path adjacent to itself, aka, the path 'touches' itself
+        OUTPUT: returns a list of valid actions as well as the coordinates they
+        result in, along with the color the action was performed on
+        FORMAT: the 4 possible actions are: [[-1,0], [0,1], [1,0], [0,-1]]
         """
         coord = node.path_heads[color]
         end_coord = node.path_end[color]
         valid_actions = []
 
-        # actions in order: down, right, up, left
+        # actions in order: up, right, down, left
         action_options = [[-1,0], [0,1], [1,0], [0,-1]]
         random.shuffle(action_options)
+
         for action in action_options:
             new_row = coord[0] + action[0]
             new_col = coord[1] + action[1]
-            # check if move is out-of-bounds
+            # 1) invalid if action is out-of-bounds
             if OutOfBounds([new_row, new_col], len(node.state)):
                 continue
-            # check if space is already occupied
+            # 2) invalid if new space is already occupied
             if node.state[new_row][new_col] != 'e':
                 continue
-            # check if move results in path becoming adjacent to itself
-            adj_itself = 0
+            # 3) invalid if action results in path becoming adjacent to itself
+            # check all 4 adjacent cells for same color
             for adj in action_options:
                 adj_row = new_row + adj[0]
                 adj_col = new_col + adj[1]
-                # check if adjacent square is out-of-bounds
+                is_adjacent = False
+                # check if adjacent cell is out-of-bounds
                 if OutOfBounds([adj_row, adj_col], len(node.state)):
                     continue
                 if node.state[adj_row][adj_col] == str(color):
+                    # ignore if adjacent cell is the end cell
                     if [adj_row, adj_col] != end_coord:
-                        adj_itself += 1
-            if adj_itself > 1:
+                        # ignore if adjacent cell is the previous path head
+                        if [adj_row, adj_col] != coord:
+                            is_adjacent = True
+                            break
+            if is_adjacent:
                 continue
-            # if move is in-bounds, space is not occupied, and path isn't
-            # adjacent to itself, it is a valid move
-            new_coord = [new_row, new_col]
-            valid_actions.append([color, action, new_coord])
+            else:
+                new_coord = [new_row, new_col]
+                valid_actions.append([color, action, new_coord])
 
         return valid_actions
 
+
     def VerifyFinal(self, node):
         """
-        Verify that the passed state is a final state
+        Verify that the passed node has a final state
 
         IF FINAL: return True
         IF NOT FINAL: return a list of those colors who are final
@@ -309,27 +308,12 @@ class StateTree(object):
             if [row_diff, col_diff] in [[-1,0], [0,1], [1,0], [0,-1]]:
                 colors_connected.append(color)
 
+        # if all colors are connected, return true
         if len(colors_connected) == len(node.path_end):
-            # if all colors are connected, return true
             return True
+        # otherwise return a list of the colors who are connected
         else:
-            # otherwise return a list of the colors who are connected
             return colors_connected
-
-
-    def node_lookup(self):
-        """
-        Allows user to enter a state's ID and see the state
-
-        LOOP: loops infinatly until user enters anything but a number
-        """
-        print 'Enter Desired State ID to look up State'
-        user_in = int(raw_input('>'))
-        while True:
-            node = self.node_dict[user_in]
-            print 'State ID:', node.ID, 'Parent ID:', node.p_ID
-            node.visualize()
-            user_in = int(raw_input('>'))
 
 
 ################################################################################
@@ -361,7 +345,8 @@ def ReadInput(pzzl_file):
 
 def OutOfBounds(coord, puzzle_dim):
     """
-    Returns true if coordinats are out of bounds of the puzzle returs false otherwise
+    Returns true if coordinats are out of bounds of the puzzle
+    Returs false otherwise
     """
     new_row, new_col = coord
     LOWER_BOUND = 0
@@ -385,7 +370,8 @@ def FindColorStart(puzzle, num_colors):
     """
     coordinates = {}  # format: {0:[r0,c0], 1:[r1,c1],...} where r = row, c = col
     dim = len(puzzle)
-    color_nums = range(num_colors)  # list of all color numbers
+    # list of all color numbers
+    color_nums = range(num_colors)
     # find coordinate for each color start
     for row_i in xrange(dim):
         for col_i in xrange(dim):
@@ -399,7 +385,7 @@ def FindColorStart(puzzle, num_colors):
                 color_nums.remove(num_found)
                 coordinates[num_found] = [row_i, col_i]
 
-    # error checking to make sure right number of colors were found
+    # error checking to make sure correct number of colors were found
     if len(coordinates) != num_colors:
         print 'ERROR: PROBLEMS FINDING COLORS'
         print 'COORDINATES: %r' % coordinates
@@ -431,12 +417,12 @@ def FindColorEnd(puzzle, num_colors):
             if int(char_found) in color_nums:
                 num_found = int(char_found)
                 color_nums.remove(num_found)
-            # if the number doesnt exist in color_nums then it is end number
+            # if the number no longer exists in color_nums, it is an end number
             else:
                 num_found = int(char_found)
                 coordinates[num_found] = [row_i, col_i]
 
-    # error checking to make sure right number of colors were found
+    # error checking to make sure correct number of colors were found
     if len(coordinates) != num_colors:
         print 'ERROR: PROBLEMS FINDING COLORS'
         print 'COORDINATES: %r' % coordinates
@@ -490,7 +476,7 @@ def DirPrint(directions):
 
     print
 
-
+# TODO: review this function
 def UglyPrint(PTree, sol_nodes, num_colors):
     """
     Prints out action sequence and final array to command line (as well as solution file)
@@ -558,7 +544,7 @@ def main():
     random.seed()
     appreciation_4_beauty = False
 
-    ## READ IN PUZZLE FROM FILE ##
+    # READ IN PUZZLE FROM FILE
     if len(sys.argv) > 1:
         p_file = sys.argv[1]
         # parse the input file
@@ -567,18 +553,21 @@ def main():
         if len(sys.argv) > 2:
             if sys.argv[2] == 'pretty':
                 appreciation_4_beauty = True
+            else:
+                print '\n!! TYPE "pretty" IF YOU WOULD LIKE THE NICE OUTPUT !!'
+                print 'EXAMPLE: "python solver.py input_p1.txt pretty"'
     else:
         print 'ERROR: you must include the file name in argument list'
         print 'EXAMPLE: "python solver.py input_p1.txt"'
         exit(1)
 
-    ## BUILD TREE AND BFTS FOR SOLUTION ##
+    # BUILD TREE AND BFTS FOR SOLUTION
     PTree = StateTree(pzzl_array, num_colors)
     solution = PTree.ID_DFTS()
 
-    ## PRINT SOLUTION ##
+    # PRINT SOLUTION
     # if puzzle is impossible, say so
-    if solution is False:
+    if solution is 'fail':
         print '== NO SOLUTION POSSIBLE! =='
     # UGLY SOLUTION
     elif not appreciation_4_beauty:
@@ -590,6 +579,7 @@ def main():
             # node.state_info()
             node.visualize()
         print '== FINISHED IN %4.4f SECONDS ==' % PTree.run_time
+        # print '== WITH %d STATES CREATED ==', % PTree.uniq_ID
 
 
 if __name__ == "__main__":

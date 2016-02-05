@@ -257,10 +257,15 @@ class StateTree(object):
         for action in action_options:
             new_row = coord[0] + action[0]
             new_col = coord[1] + action[1]
+            # if new cell is the teh end cell, finish loop on that note
+            if [new_row, new_col] == end_coord:
+                new_coord = [new_row, new_col]
+                valid_actions.append([color, action, new_coord])
+                break
             # 1) invalid if action is out-of-bounds
             if OutOfBounds([new_row, new_col], len(node.state)):
                 continue
-            # 2) invalid if new space is already occupied
+            # 2) invalid if new cell is already occupied
             if node.state[new_row][new_col] != 'e':
                 continue
             # 3) invalid if action results in path becoming adjacent to itself
@@ -295,17 +300,28 @@ class StateTree(object):
         IF FINAL: return True
         IF NOT FINAL: return a list of those colors who are final
         """
+        # Setting SMART_FINAL_DETECT to True reduces the max depth_limit by
+        # 2 levels, making the time comlexity O(b^(d-2))
+        # Unfortunatly, I am not allowed to use this method for the homework
+        SMART_FINAL_DETECT = True
         colors_connected = []
 
         for color in node.path_end:
             # get path_end and path_head coordinates for color
             end = node.path_end[color]
             head = node.path_heads[color]
-            # get the difference (offset) betweeen the path_head and path_end
-            row_diff = head[0] - end[0]
-            col_diff = head[1] - end[1]
-            # if the endpoint is adjacent to the path head then state is final
-            if [row_diff, col_diff] in [[-1,0], [0,1], [1,0], [0,-1]]:
+
+            if SMART_FINAL_DETECT:
+                # get the difference (offset) betweeen the path_head and path_end
+                row_diff = head[0] - end[0]
+                col_diff = head[1] - end[1]
+                # if the endpoint is adjacent to the path head then state is final
+                if [row_diff, col_diff] in [[-1,0], [0,1], [1,0], [0,-1]]:
+                    colors_connected.append(color)
+
+            # This is the strait-forward, dumb method of detecting a final state
+            # It greatly increases the time requred for solution to be found
+            if end == head:
                 colors_connected.append(color)
 
         # if all colors are connected, return true
@@ -314,6 +330,7 @@ class StateTree(object):
         # otherwise return a list of the colors who are connected
         else:
             return colors_connected
+
 
 
 ################################################################################

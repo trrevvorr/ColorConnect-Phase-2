@@ -8,8 +8,6 @@ Puzzle Assignmet 2 - Phase 1
 Trevor Ross
 02/03/2016
 """
-
-import sys
 import copy
 import random
 import time
@@ -91,7 +89,7 @@ class Node(object):
                     if [r, c] == start_coord or [r, c] == end_coord:
                         # start and end points are underlined
                         style = UNDERLINE + style
-                    elif [r, c] == head_coord:
+                    if [r, c] == head_coord:
                         # trail heads are bolded
                         style = BOLD + style
                     # print the cell with style
@@ -103,23 +101,22 @@ class Node(object):
 class StateTree(object):
     """Creates a State Tree for the puzzle, allowing ID-DFTS on said puzzle"""
     def __init__(self, initial_puzzle, number_of_colors):
+        self.num_colors = number_of_colors
         # a globla ID index for creating unique node IDs
         self.uniq_ID = 0
-        # create a root node
+
+        # create a root node and fill in the details
         self.root = Node(self.uniq_ID, state=initial_puzzle)
-        self.num_colors = number_of_colors
         # find coordinates of the start of the color path
-        self.color_start = FindColorStart(self.root.state, self.num_colors)
-        self.root.path_start = self.color_start
-        # path head is initialy the same as the startng points
-        self.root.path_heads = self.color_start
+        self.root.path_start = FindColorStart(self.root.state, self.num_colors)
+        self.root.path_heads = self.root.path_start
         # find coordinates of the end of the color path
-        self.color_end = FindColorEnd(self.root.state, self.num_colors)
-        self.root.path_end = self.color_end
+        self.root.path_end = FindColorEnd(self.root.state, self.num_colors)
         # the root has a path cost of 0
         self.root.path_cost = 0
         # timing variable
-        self.run_time = time.time()
+        self.run_time = None
+        self.min_path = MinPathLen(self.root.path_start, self.root.path_end)
 
 
     def ID_DFTS(self):
@@ -134,7 +131,7 @@ class StateTree(object):
 
         while True:
             print '=== RUNNING DFTS WITH L = %d ===' % depth_limit  # TODO: remove this line eventually
-            result = self.DFTS(depth_limit)
+            result = self.RecursiveDFTS(self.root, depth_limit)
             if result != 'cutoff':
                 # the puzzle has either been solved or found to be unsolvable
                 self.run_time = time.time() - self.run_time
@@ -142,15 +139,15 @@ class StateTree(object):
             # increase the depth and try again
             depth_limit += 1
 
-    # TODO: edit out this method after submission
-    def DFTS(self, depth_limit):  # REVIEW: ask TA if i am allowed to remove this function
-        """
-        Depth Limited, Depth First Tree Search
-
-        The purpose of this function is to call its recusive counterpart
-        OUTPUT: 'fail', 'cutoff', or solution
-        """
-        return self.RecursiveDFTS(self.root, depth_limit)
+    # # TODO: edit out this method after submission
+    # def DFTS(self, depth_limit):  # REVIEW: ask TA if i am allowed to remove this function
+    #     """
+    #     Depth Limited, Depth First Tree Search
+    #
+    #     The purpose of this function is to call its recusive counterpart
+    #     OUTPUT: fail (-1), cutoff (0), or solution (list of nodes)
+    #     """
+    #     return self.RecursiveDFTS(self.root, depth_limit)
 
 
     def RecursiveDFTS(self, node, depth_limit):
@@ -160,7 +157,7 @@ class StateTree(object):
         OUTPUT: 'fail', 'cutoff', or a solution
         solution contains a list of nodes with the last item being the final state
         """
-        if self.VerifyFinal(node) is True:
+        if VerifyFinal(node) is True:
             return [node]
         elif depth_limit == 0:
             # the depth limit has been reached
@@ -170,7 +167,7 @@ class StateTree(object):
             # OPTIMIZATION: store the list of final states from the if statement
             # above and pass it to the Action() funtion so it doen't have to
             # check the same thing again
-            valid_actions = self.Action(node)
+            valid_actions = Action(node, self.num_colors)
             for color_num, action, new_coord in valid_actions:
                 self.uniq_ID += 1
                 # retulting child state from parent acted on by action
@@ -195,170 +192,13 @@ class StateTree(object):
                 return 'fail'
 
 
-    def Action(self, node):
-        """
-        Given a node, return a shuffled list of valid actions on that node
 
-        VALID MOVE DISQUALIFICATION: if even ONE of the colors has no valid
-        moves and is not in a goal state, no valid moves will be returned for
-        ANY other colors. Furthermore, ActionOnColor() is called and it further
-        limits the amount of actions returned
-        OUTPUT: shuffled list of color nums , actions, and new coords
-        """
-        # shuffled list of valid actions to perform on node
-        # format: [[n, [r_, c_], [r', c']], [n, [r_, c_], [r', c']], ...]
-        # such that n is the color number, r_ is the row action,
-        # c_ is the column action, r' is the new row, c' is the new column
-        valid_actions = []
-
-        # find which colors are already connected
-        colors_connected = self.VerifyFinal(node)
-        # get a list of colors in puzzle and shuffle it
-        color_numbers = range(self.num_colors)
-        # if the color is already connected, no further action needed on color
-        for color in color_numbers:
-            if color in colors_connected:
-                color_numbers.remove(color)
-
-        # iterate through remaining colors, finding actions for each
-        for color in color_numbers:
-            old_length = len(valid_actions)
-            # add actions for this color to the valid actions list
-            valid_actions += (self.ActionOnColor(node, color))
-            # if no new actions were added, this color has hit a dead end
-            if len(valid_actions) == old_length:
-                # since it has hit a dead end and it's not final, no actions returned
-                return []
-
-        random.shuffle(valid_actions)
-        return valid_actions
-
-    def ActionOnColor(self, node, color):
-        """
-        Given a node and a color, the function will return a list of all
-        valid moves for that color
-
-        VALID MOVE DISQUALIFICATION:
-        1) action moves color path out of puzzle's bounds
-        2) action moves color path onto a pre-existing path
-        3) action moves color path adjacent to itself, aka, the path 'touches' itself
-        OUTPUT: returns a list of valid actions as well as the coordinates they
-        result in, along with the color the action was performed on
-        FORMAT: the 4 possible actions are: [[-1,0], [0,1], [1,0], [0,-1]]
-        """
-        coord = node.path_heads[color]
-        end_coord = node.path_end[color]
-        valid_actions = []
-
-        # actions in order: up, right, down, left
-        action_options = [[-1,0], [0,1], [1,0], [0,-1]]
-        random.shuffle(action_options)
-
-        for action in action_options:
-            new_row = coord[0] + action[0]
-            new_col = coord[1] + action[1]
-            # if new cell is the teh end cell, finish loop on that note
-            if [new_row, new_col] == end_coord:
-                new_coord = [new_row, new_col]
-                valid_actions.append([color, action, new_coord])
-                break
-            # 1) invalid if action is out-of-bounds
-            if OutOfBounds([new_row, new_col], len(node.state)):
-                continue
-            # 2) invalid if new cell is already occupied
-            if node.state[new_row][new_col] != 'e':
-                continue
-            # 3) invalid if action results in path becoming adjacent to itself
-            # check all 4 adjacent cells for same color
-            for adj in action_options:
-                adj_row = new_row + adj[0]
-                adj_col = new_col + adj[1]
-                is_adjacent = False
-                # check if adjacent cell is out-of-bounds
-                if OutOfBounds([adj_row, adj_col], len(node.state)):
-                    continue
-                if node.state[adj_row][adj_col] == str(color):
-                    # ignore if adjacent cell is the end cell
-                    if [adj_row, adj_col] != end_coord:
-                        # ignore if adjacent cell is the previous path head
-                        if [adj_row, adj_col] != coord:
-                            is_adjacent = True
-                            break
-            if is_adjacent:
-                continue
-            else:
-                new_coord = [new_row, new_col]
-                valid_actions.append([color, action, new_coord])
-
-        return valid_actions
-
-
-    def VerifyFinal(self, node):
-        """
-        Verify that the passed node has a final state
-
-        IF FINAL: return True
-        IF NOT FINAL: return a list of those colors who are final
-        """
-        # Setting SMART_FINAL_DETECT to True reduces the max depth_limit by
-        # 2 levels, making the time comlexity O(b^(d-2))
-        # Unfortunatly, I am not allowed to use this method for the homework
-        SMART_FINAL_DETECT = False
-        colors_connected = []
-
-        for color in node.path_end:
-            # get path_end and path_head coordinates for color
-            end = node.path_end[color]
-            head = node.path_heads[color]
-
-            if SMART_FINAL_DETECT:
-                # get the difference (offset) betweeen the path_head and path_end
-                row_diff = head[0] - end[0]
-                col_diff = head[1] - end[1]
-                # if the endpoint is adjacent to the path head then state is final
-                if [row_diff, col_diff] in [[-1,0], [0,1], [1,0], [0,-1]]:
-                    colors_connected.append(color)
-
-            # This is the strait-forward, dumb method of detecting a final state
-            # It greatly increases the time requred for solution to be found
-            if end == head:
-                colors_connected.append(color)
-
-        # if all colors are connected, return true
-        if len(colors_connected) == len(node.path_end):
-            return True
-        # otherwise return a list of the colors who are connected
-        else:
-            return colors_connected
 
 
 
 ################################################################################
 ## FUNCTIONS
 ################################################################################
-
-def ReadInput(pzzl_file):
-    """
-    Reads in a puzzle file and parses the data for solving
-
-    INPUT: first line: # rows/columns, # of colors
-    the input puzzle will follow as a square matrix
-    OUTPUT: returns a tuple with the number of colors and the puzzle as a 2D array
-    """
-    f_hand = open(pzzl_file)
-
-    pzzl_array = []
-    # read every line into pzzle_array (even first line)
-    for line in f_hand:
-        line = line.split()
-        pzzl_array.append(line)
-    # pop first line and store it's second element (num colors)
-    first_line = pzzl_array.pop(0)
-    num_colors = int(first_line.pop())
-
-    f_hand.close()
-    return (num_colors, pzzl_array)
-
 
 def OutOfBounds(coord, puzzle_dim):
     """
@@ -449,6 +289,168 @@ def FindColorEnd(puzzle, num_colors):
     return coordinates
 
 
+def MinPathLen(path_start, path_end):
+    """
+    Finds the minimum length of the sum of all the shortest-possible-paths.
+    These "shortest-possible-paths" are just the difference between the start
+    and end points of each color so the actual path may longer.
+
+    INPUT: start and end points for the puzzle
+    OUTPUT: sum of shortest-possible-path lengths for each color
+    """
+    min_sum = 0
+
+    for color_num in path_start.keys():
+        start = path_start[color_num]
+        end = path_end[color_num]
+
+        row_diff = abs(start[0] - end[0])
+        col_diff = abs(start[1] - end[1])
+        short_path_len = row_diff + col_diff
+        min_sum += short_path_len
+    print min_sum
+    return min_sum
+
+
+def Action(node, num_colors):
+    """
+    Given a node, return a shuffled list of valid actions on that node
+
+    VALID MOVE DISQUALIFICATION: if even ONE of the colors has no valid
+    moves and is not in a goal state, no valid moves will be returned for
+    ANY other colors. Furthermore, ActionOnColor() is called and it further
+    limits the amount of actions returned
+    OUTPUT: shuffled list of color nums , actions, and new coords
+    """
+    # shuffled list of valid actions to perform on node
+    # format: [[n, [r_, c_], [r', c']], [n, [r_, c_], [r', c']], ...]
+    # such that n is the color number, r_ is the row action,
+    # c_ is the column action, r' is the new row, c' is the new column
+    valid_actions = []
+
+    # find which colors are already connected
+    colors_connected = VerifyFinal(node)
+    if colors_connected is True:
+        return []
+    # get a list of colors in puzzle and shuffle it
+    color_numbers = range(num_colors)
+    # if the color is already connected, no further action needed on color
+    for color in color_numbers:
+        if color in colors_connected:
+            color_numbers.remove(color)
+
+    # iterate through remaining colors, finding actions for each
+    for color in color_numbers:
+        old_length = len(valid_actions)
+        # add actions for this color to the valid actions list
+        valid_actions += (ActionOnColor(node, color))
+        # if no new actions were added, this color has hit a dead end
+        if len(valid_actions) == old_length:
+            # since it has hit a dead end and it's not final, no actions returned
+            return []
+
+    random.shuffle(valid_actions)
+    return valid_actions
+
+def ActionOnColor(node, color):
+    """
+    Given a node and a color, the function will return a list of all
+    valid moves for that color
+
+    VALID MOVE DISQUALIFICATION:
+    1) action moves color path out of puzzle's bounds
+    2) action moves color path onto a pre-existing path
+    3) action moves color path adjacent to itself, aka, the path 'touches' itself
+    OUTPUT: returns a list of valid actions as well as the coordinates they
+    result in, along with the color the action was performed on
+    FORMAT: the 4 possible actions are: [[-1,0], [0,1], [1,0], [0,-1]]
+    """
+    coord = node.path_heads[color]
+    end_coord = node.path_end[color]
+    valid_actions = []
+
+    # actions in order: up, right, down, left
+    action_options = [[-1,0], [0,1], [1,0], [0,-1]]
+    random.shuffle(action_options)
+
+    for action in action_options:
+        new_row = coord[0] + action[0]
+        new_col = coord[1] + action[1]
+        # if new cell is the teh end cell, finish loop on that note
+        if [new_row, new_col] == end_coord:
+            new_coord = [new_row, new_col]
+            valid_actions.append([color, action, new_coord])
+            break
+        # 1) invalid if action is out-of-bounds
+        if OutOfBounds([new_row, new_col], len(node.state)):
+            continue
+        # 2) invalid if new cell is already occupied
+        if node.state[new_row][new_col] != 'e':
+            continue
+        # 3) invalid if action results in path becoming adjacent to itself
+        # check all 4 adjacent cells for same color
+        for adj in action_options:
+            adj_row = new_row + adj[0]
+            adj_col = new_col + adj[1]
+            is_adjacent = False
+            # check if adjacent cell is out-of-bounds
+            if OutOfBounds([adj_row, adj_col], len(node.state)):
+                continue
+            if node.state[adj_row][adj_col] == str(color):
+                # ignore if adjacent cell is the end cell
+                if [adj_row, adj_col] != end_coord:
+                    # ignore if adjacent cell is the previous path head
+                    if [adj_row, adj_col] != coord:
+                        is_adjacent = True
+                        break
+        if is_adjacent:
+            continue
+        else:
+            new_coord = [new_row, new_col]
+            valid_actions.append([color, action, new_coord])
+
+    return valid_actions
+
+
+def VerifyFinal(node):
+    """
+    Verify that the passed node has a final state
+
+    IF FINAL: return True
+    IF NOT FINAL: return a list of those colors who are final
+    """
+    # Setting SMART_FINAL_DETECT to True reduces the max depth_limit by
+    # 2 levels, making the time comlexity O(b^(d-2))
+    # Unfortunatly, I am not allowed to use this method for the homework
+    SMART_FINAL_DETECT = False
+    colors_connected = []
+
+    for color in node.path_end:
+        # get path_end and path_head coordinates for color
+        end = node.path_end[color]
+        head = node.path_heads[color]
+
+        if SMART_FINAL_DETECT:
+            # get the difference (offset) betweeen the path_head and path_end
+            row_diff = head[0] - end[0]
+            col_diff = head[1] - end[1]
+            # if the endpoint is adjacent to the path head then state is final
+            if [row_diff, col_diff] in [[-1,0], [0,1], [1,0], [0,-1]]:
+                colors_connected.append(color)
+
+        # This is the strait-forward, dumb method of detecting a final state
+        # It greatly increases the time requred for solution to be found
+        if end == head:
+            colors_connected.append(color)
+
+    # if all colors are connected, return true
+    if len(colors_connected) == len(node.path_end):
+        return True
+    # otherwise return a list of the colors who are connected
+    else:
+        return colors_connected
+
+
 def Result(p_state, coord, action):
     """
     Return the result of taking action on the coordinate of the given state
@@ -494,105 +496,21 @@ def DirPrint(directions):
     print
 
 
-def UglyPrint(PTree, sol_nodes):
-    """
-    Prints out action sequence and final array to command line (as well as solution file)
-
-    INPUT: list of nodes from root to final for solution path and number of colors
-    OUTPUT: action format: color col_moved_to row_moved_to, color col_moved_to etc.
-    NOTE: this function will not work properly if SMART_FINAL_DETECT set to True
-    in the VerifyFinal() function
-    """
-    final_state = sol_nodes[-1].state
-    in_file_name = sys.argv[1]
-    out_file_name = 'p%s_solution.txt' % in_file_name[7]
-    out_file = open(out_file_name, 'w')
-
-    # time in microseconds
-    print int(PTree.run_time * 1000000)
-    out_file.write(str(int(PTree.run_time * 1000000)))
-    out_file.write('\n')
-    # path cost of solution
-    print sol_nodes[-1].path_cost
-    out_file.write(str(sol_nodes[-1].path_cost))
-    out_file.write('\n')
-
-    # find all actions stored in nodes
-    actions = []
-    for node in sol_nodes:
-        if node.action is None:
-            continue
-        else:
-            actions.append(node.action)
-
-    for i, action in enumerate(actions):
-        if i + 1 < len(actions):
-            comma = ','
-        else:
-            comma = ''
-        # build output with rows and colums revered per Dr. T's request
-        output = '%d %d %d%s' % (action[0], action[2], action[1], comma)
-        # print actions
-        print output,
-        out_file.write(output)
-    print
-    out_file.write('\n')
-
-    # print final state
-    for row in final_state:
-        for char in row:
-            print char,
-            out_file.write(char + ' ')
-        print
-        out_file.write('\n')
-
-    out_file.close()
-
 ################################################################################
-## Main
+# Main
 ################################################################################
 
-def main():
+def solve(pzzl_array, num_colors):
     random.seed()
-    appreciation_4_beauty = False
 
-    # READ IN PUZZLE FROM FILE
-    if len(sys.argv) > 1:
-        p_file = sys.argv[1]
-        # parse the input file
-        (num_colors, pzzl_array) = ReadInput(p_file)
-        # check for a second extra argumanet
-        if len(sys.argv) > 2:
-            if sys.argv[2] == 'pretty':
-                appreciation_4_beauty = True
-            else:
-                print '\n!! TYPE "pretty" IF YOU WOULD LIKE THE NICE OUTPUT !!'
-                print 'EXAMPLE: "python solver.py input_p1.txt pretty"'
-    else:
-        print 'ERROR: you must include the file name in argument list'
-        print 'EXAMPLE: "python solver.py input_p1.txt"'
-        exit(1)
-
-    # BUILD TREE AND BFTS FOR SOLUTION
+    # build state tree to find solution
     PTree = StateTree(pzzl_array, num_colors)
     solution = PTree.ID_DFTS()
 
-    # PRINT SOLUTION
-    # if puzzle is impossible, say so
-    if solution is 'fail':
-        print '== NO SOLUTION POSSIBLE! =='
-    # UGLY SOLUTION
-    elif not appreciation_4_beauty:
-        UglyPrint(PTree, solution)
-    # PRETTY SOLUTION
-    else:
-        for node in solution:
-            print '== STATE %d LEVEL %d ==' % (node.ID, node.path_cost)
-            # node.state_info()
-            node.visualize()
-        print '== FINISHED IN %4.4f SECONDS ==' % PTree.run_time
-        # print '== WITH %d STATES CREATED ==', % PTree.uniq_ID
+    return (solution, PTree.run_time)
 
 
-if __name__ == "__main__":
-    main()
+##############################################################################
+# TODO
+# fix nessisary docstrings made invalid thanks to files being split up
+# try a few more optimizations even though they are probably illegal

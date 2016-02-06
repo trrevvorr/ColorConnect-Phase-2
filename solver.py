@@ -9,7 +9,6 @@ Trevor Ross
 02/03/2016
 """
 
-import sys
 import copy
 import random
 import time
@@ -91,7 +90,7 @@ class Node(object):
                     if [r, c] == start_coord or [r, c] == end_coord:
                         # start and end points are underlined
                         style = UNDERLINE + style
-                    elif [r, c] == head_coord:
+                    if [r, c] == head_coord:
                         # trail heads are bolded
                         style = BOLD + style
                     # print the cell with style
@@ -337,29 +336,6 @@ class StateTree(object):
 ## FUNCTIONS
 ################################################################################
 
-def ReadInput(pzzl_file):
-    """
-    Reads in a puzzle file and parses the data for solving
-
-    INPUT: first line: # rows/columns, # of colors
-    the input puzzle will follow as a square matrix
-    OUTPUT: returns a tuple with the number of colors and the puzzle as a 2D array
-    """
-    f_hand = open(pzzl_file)
-
-    pzzl_array = []
-    # read every line into pzzle_array (even first line)
-    for line in f_hand:
-        line = line.split()
-        pzzl_array.append(line)
-    # pop first line and store it's second element (num colors)
-    first_line = pzzl_array.pop(0)
-    num_colors = int(first_line.pop())
-
-    f_hand.close()
-    return (num_colors, pzzl_array)
-
-
 def OutOfBounds(coord, puzzle_dim):
     """
     Returns true if coordinats are out of bounds of the puzzle
@@ -494,105 +470,24 @@ def DirPrint(directions):
     print
 
 
-def UglyPrint(PTree, sol_nodes):
-    """
-    Prints out action sequence and final array to command line (as well as solution file)
-
-    INPUT: list of nodes from root to final for solution path and number of colors
-    OUTPUT: action format: color col_moved_to row_moved_to, color col_moved_to etc.
-    NOTE: this function will not work properly if SMART_FINAL_DETECT set to True
-    in the VerifyFinal() function
-    """
-    final_state = sol_nodes[-1].state
-    in_file_name = sys.argv[1]
-    out_file_name = 'p%s_solution.txt' % in_file_name[7]
-    out_file = open(out_file_name, 'w')
-
-    # time in microseconds
-    print int(PTree.run_time * 1000000)
-    out_file.write(str(int(PTree.run_time * 1000000)))
-    out_file.write('\n')
-    # path cost of solution
-    print sol_nodes[-1].path_cost
-    out_file.write(str(sol_nodes[-1].path_cost))
-    out_file.write('\n')
-
-    # find all actions stored in nodes
-    actions = []
-    for node in sol_nodes:
-        if node.action is None:
-            continue
-        else:
-            actions.append(node.action)
-
-    for i, action in enumerate(actions):
-        if i + 1 < len(actions):
-            comma = ','
-        else:
-            comma = ''
-        # build output with rows and colums revered per Dr. T's request
-        output = '%d %d %d%s' % (action[0], action[2], action[1], comma)
-        # print actions
-        print output,
-        out_file.write(output)
-    print
-    out_file.write('\n')
-
-    # print final state
-    for row in final_state:
-        for char in row:
-            print char,
-            out_file.write(char + ' ')
-        print
-        out_file.write('\n')
-
-    out_file.close()
-
 ################################################################################
-## Main
+# Main
 ################################################################################
 
-def main():
+def solve(pzzl_array, num_colors):
     random.seed()
-    appreciation_4_beauty = False
 
-    # READ IN PUZZLE FROM FILE
-    if len(sys.argv) > 1:
-        p_file = sys.argv[1]
-        # parse the input file
-        (num_colors, pzzl_array) = ReadInput(p_file)
-        # check for a second extra argumanet
-        if len(sys.argv) > 2:
-            if sys.argv[2] == 'pretty':
-                appreciation_4_beauty = True
-            else:
-                print '\n!! TYPE "pretty" IF YOU WOULD LIKE THE NICE OUTPUT !!'
-                print 'EXAMPLE: "python solver.py input_p1.txt pretty"'
-    else:
-        print 'ERROR: you must include the file name in argument list'
-        print 'EXAMPLE: "python solver.py input_p1.txt"'
-        exit(1)
-
-    # BUILD TREE AND BFTS FOR SOLUTION
+    # build state tree to find solution
     PTree = StateTree(pzzl_array, num_colors)
     solution = PTree.ID_DFTS()
 
-    # PRINT SOLUTION
-    # if puzzle is impossible, say so
-    if solution is 'fail':
-        print '== NO SOLUTION POSSIBLE! =='
-    # UGLY SOLUTION
-    elif not appreciation_4_beauty:
-        UglyPrint(PTree, solution)
-    # PRETTY SOLUTION
-    else:
-        for node in solution:
-            print '== STATE %d LEVEL %d ==' % (node.ID, node.path_cost)
-            # node.state_info()
-            node.visualize()
-        print '== FINISHED IN %4.4f SECONDS ==' % PTree.run_time
-        # print '== WITH %d STATES CREATED ==', % PTree.uniq_ID
+    return (solution, PTree.run_time)
 
 
-if __name__ == "__main__":
-    main()
+##############################################################################
+# TODO
+# remove action, ActionOnColor, and VerifyFinal methods from class
+# change name of file to 'ID_DFTS'
+# fix README errors due to new multi-file format
+# fix nessisary docstrings made invalid thanks to files being split up
+# try a few more optimizations even though they are probably illegal

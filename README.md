@@ -1,13 +1,13 @@
 # Puzzle Assignment 1 - Phase 1
 
-## How to Build Program
+## How to Build the Script
 #### Compiling*
 * *Use Python 2.7*  
 * Type `python solver.py input_p1.txt`
 * Tested and working on OS X and Windows
 
 #### Output
-`180088` <- program took 180088 **_microseconds_**   
+`180088` <- solution took 180088 **_microseconds_**   
 `10`     <- there were 10 moves made  
 `0 1 0, 0 2 0, 0 3 0, 0 3 1, 0 3 2, 1 1 1, 1 1 2, 1 0 2, 0 3 3, 1 0 3` <- these are the moves  
 `0  0  0  0` <- resulting grid with colors connected  

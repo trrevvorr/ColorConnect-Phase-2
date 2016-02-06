@@ -142,7 +142,7 @@ class StateTree(object):
             # increase the depth and try again
             depth_limit += 1
 
-
+    # TODO: edit out this method after submission
     def DFTS(self, depth_limit):  # REVIEW: ask TA if i am allowed to remove this function
         """
         Depth Limited, Depth First Tree Search

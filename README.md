@@ -3,8 +3,8 @@
 ## How to Build the Script
 #### Compiling*
 * *Use Python 2.7*  
-* Type `python solver.py input_p1.txt`
-* Tested and working on OS X and Windows
+* Type `python solve_color_connect.py input_p1.txt`
+* Tested and working on OS X, Unix, and Windows
 
 #### Output
 `180088` <- solution took 180088 **_microseconds_**   
@@ -16,7 +16,7 @@
 `1  e  e  0`  
 
 #### Output 2
-If you instead compile with `python solver.py input_p1.txt pretty`, the output will look something like this:  
+If you instead compile with `python solve_color_connect.py input_p1.txt pretty`, the output will look something like this:  
 ![Pretty Output](http://snappyimages.nextwavesrl.netdna-cdn.com/img/b7def6c1b375dbd2fa78d9af5fd8fc8a.png)
 
 #### Runtime

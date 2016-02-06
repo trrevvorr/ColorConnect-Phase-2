@@ -303,7 +303,7 @@ class StateTree(object):
         # Setting SMART_FINAL_DETECT to True reduces the max depth_limit by
         # 2 levels, making the time comlexity O(b^(d-2))
         # Unfortunatly, I am not allowed to use this method for the homework
-        SMART_FINAL_DETECT = True
+        SMART_FINAL_DETECT = False
         colors_connected = []
 
         for color in node.path_end:
@@ -493,15 +493,16 @@ def DirPrint(directions):
 
     print
 
-# TODO: review this function
-def UglyPrint(PTree, sol_nodes, num_colors):
+
+def UglyPrint(PTree, sol_nodes):
     """
     Prints out action sequence and final array to command line (as well as solution file)
 
     INPUT: list of nodes from root to final for solution path and number of colors
     OUTPUT: action format: color col_moved_to row_moved_to, color col_moved_to etc.
+    NOTE: this function will not work properly if SMART_FINAL_DETECT set to True
+    in the VerifyFinal() function
     """
-    root_state = sol_nodes[0].state
     final_state = sol_nodes[-1].state
     in_file_name = sys.argv[1]
     out_file_name = 'p%s_solution.txt' % in_file_name[7]
@@ -512,32 +513,26 @@ def UglyPrint(PTree, sol_nodes, num_colors):
     out_file.write(str(int(PTree.run_time * 1000000)))
     out_file.write('\n')
     # path cost of solution
-    print sol_nodes[-1].path_cost + num_colors
-    out_file.write(str(sol_nodes[-1].path_cost + num_colors))
+    print sol_nodes[-1].path_cost
+    out_file.write(str(sol_nodes[-1].path_cost))
     out_file.write('\n')
-    # print actions and final state
 
-    # find all actions stored by states
+    # find all actions stored in nodes
     actions = []
     for node in sol_nodes:
         if node.action is None:
             continue
         else:
             actions.append(node.action)
-    # find the last actions to get to 'officially' connect the colors
-    endpoints = FindColorEnd(root_state, num_colors)
-    for color in endpoints:
-        # find the end point coordinats for color
-        end = endpoints[color]
-        actions.append([color, end[0], end[1]])
 
     for i, action in enumerate(actions):
-        # switch the row and col actions because thats how Dr. T wants it
         if i + 1 < len(actions):
             comma = ','
         else:
             comma = ''
+        # build output with rows and colums revered per Dr. T's request
         output = '%d %d %d%s' % (action[0], action[2], action[1], comma)
+        # print actions
         print output,
         out_file.write(output)
     print
@@ -588,7 +583,7 @@ def main():
         print '== NO SOLUTION POSSIBLE! =='
     # UGLY SOLUTION
     elif not appreciation_4_beauty:
-        UglyPrint(PTree, solution, num_colors)
+        UglyPrint(PTree, solution)
     # PRETTY SOLUTION
     else:
         for node in solution:

@@ -19,6 +19,17 @@
 If you instead compile with `python solver.py input_p1.txt pretty`, the output will look something like this:  
 ![Pretty Output](http://snappyimages.nextwavesrl.netdna-cdn.com/img/b7def6c1b375dbd2fa78d9af5fd8fc8a.png)
 
+#### Runtime
+It's all relative but here are the average times I got for solving puzzles 1, 2, and 3 with SMART_FINAL_DETECT set to False.
+1. 1.1 seconds
+2. 115 seconds
+3. 350 seconds
+
+Here are the average times I got with SMART_FINAL_DETECT set to True.
+1. 0.35 seconds
+2. 12 seconds
+3. 5.7 seconds
+
 ## Puzzle Details
 The game is Color Connect. Given a square playing board (n x n), connect the matching colors with an unbroken line. All colors must be connected and no two lines may cross. When referencing a point in the grid, the upper left corner is 0x0 and the column should be listed first. Ex: 1,2 = column 1, row 2
 

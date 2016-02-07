@@ -116,7 +116,6 @@ class StateTree(object):
         self.root.path_cost = 0
         # timing variable
         self.run_time = None
-        self.min_path = MinPathLen(self.root.path_start, self.root.path_end)
 
 
     def ID_DFTS(self):
@@ -130,7 +129,7 @@ class StateTree(object):
         depth_limit = 0
 
         while True:
-            print '=== RUNNING DFTS WITH L = %d ===' % depth_limit  # TODO: remove this line eventually
+            # print '=== RUNNING DFTS WITH L = %d ===' % depth_limit
             result = self.RecursiveDFTS(self.root, depth_limit)
             if result != 'cutoff':
                 # the puzzle has either been solved or found to be unsolvable
@@ -274,29 +273,6 @@ def FindColorEnd(puzzle, num_colors):
     return coordinates
 
 
-def MinPathLen(path_start, path_end):
-    """
-    Finds the minimum length of the sum of all the shortest-possible-paths.
-    These "shortest-possible-paths" are just the difference between the start
-    and end points of each color so the actual path may longer.
-
-    INPUT: start and end points for the puzzle
-    OUTPUT: sum of shortest-possible-path lengths for each color
-    """
-    min_sum = 0
-
-    for color_num in path_start.keys():
-        start = path_start[color_num]
-        end = path_end[color_num]
-
-        row_diff = abs(start[0] - end[0])
-        col_diff = abs(start[1] - end[1])
-        short_path_len = row_diff + col_diff
-        min_sum += short_path_len
-    print min_sum
-    return min_sum
-
-
 def Action(node, num_colors):
     """
     Given a node, return a shuffled list of valid actions on that node
@@ -425,8 +401,9 @@ def VerifyFinal(node):
 
         # This is the strait-forward, dumb method of detecting a final state
         # It greatly increases the time requred for solution to be found
-        if end == head:
-            colors_connected.append(color)
+        else:
+            if end == head:
+                colors_connected.append(color)
 
     # if all colors are connected, return true
     if len(colors_connected) == len(node.path_end):
@@ -493,9 +470,3 @@ def solve(pzzl_array, num_colors):
     solution = PTree.ID_DFTS()
 
     return (solution, PTree.run_time)
-
-
-##############################################################################
-# TODO
-# fix nessisary docstrings made invalid thanks to files being split up
-# try a few more optimizations even though they are probably illegal

@@ -293,12 +293,11 @@ def Action(node, num_colors):
     colors_connected = VerifyFinal(node)
     if colors_connected is True:
         return []
-    # get a list of colors in puzzle and shuffle it
+    # get a list of colors in puzzle
     color_numbers = range(num_colors)
     # if the color is already connected, no further action needed on color
-    for color in color_numbers:
-        if color in colors_connected:
-            color_numbers.remove(color)
+    for color in colors_connected:
+        color_numbers.remove(color)
 
     # iterate through remaining colors, finding actions for each
     for color in color_numbers:

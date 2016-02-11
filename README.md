@@ -1,4 +1,4 @@
-# Puzzle Assignment 1 - Phase 1
+# Color Connect - Iterative Deepening, Depth-First Tree Search
 
 ## How to Build the Script
 #### Compiling*
